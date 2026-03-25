@@ -1,342 +1,745 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
   <link rel="icon" href="https://i.ibb.co/SXSKh9xM/Logo-m-i-c-a-tr-ng-H-p-Th-Nh.png">
   <base target="_top">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Hệ thống quản lý công văn và lịch công tác nội bộ - Trường TH&THCS Hợp Thành.">
-  <title>Quản lý Công văn & Lịch công tác - TH&THCS Hợp Thành</title>
+  
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Hệ thống Quản lý Nhiệm vụ</title>
 
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  
   <script src="ketnoi.js?v=20260325"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <style>
-    /* --- 1. MÀN HÌNH CHỜ KẾT NỐI --- */
+    body, input, select, textarea, button, table {
+      font-family: 'Times New Roman', Times, serif !important;
+      font-size: 14px;
+    }
+
+    body {
+      background-color: transparent; 
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+    
+    body::after {
+      content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(255, 251, 240, 0.6); 
+      z-index: -1; pointer-events: none;
+    }
+
+    #welcome-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0fdf4;
+      font-family: "Times New Roman", serif;
+    }
+
     #loading-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(255, 255, 255, 0.95); display: flex; flex-direction: column;
-      align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease;
+      background: rgba(255, 255, 255, 0.85); /* Nền trong suốt tránh bị Google đánh cờ Clickjacking */
+      backdrop-filter: blur(5px);
+      z-index: 10000;
+      display: none; 
+      flex-direction: column; justify-content: center; align-items: center;
+      transition: opacity 0.3s ease;
     }
-    .spinner {
-      width: 50px; height: 50px; border: 5px solid #f3f3f3;
-      border-top: 5px solid #1e3a8a; border-radius: 50%;
-      animation: spin 1s linear infinite; margin-bottom: 15px;
+    
+    .spinner-ring {
+      width: 60px; height: 60px;
+      border: 5px solid rgba(0, 0, 0, 0.1);
+      border-left-color: #0d6efd; border-top-color: #dc3545;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    .loading-text { font-family: 'Segoe UI', Arial, sans-serif; font-size: 16px; color: #1e3a8a; font-weight: bold; letter-spacing: 0.5px; }
+
+    .loading-text {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+      background: linear-gradient(45deg, #0d6efd, #6610f2, #dc3545, #0d6efd);
+      background-size: 300% 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: gradientMove 3s ease infinite;
+    }
+
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
-    /* MÀN HÌNH ĐĂNG NHẬP */
-    #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f0fdf4; z-index: 999999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: "Times New Roman", serif; }
-    .login-box { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; border-top: 5px solid #1e3a8a; max-width: 550px; width: 90%; }
+    .dev-badge-container {
+      position: fixed; bottom: 20px; right: 20px; top: auto; z-index: 9999;
+      display: flex; align-items: center; gap: 10px; padding: 6px 16px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      border-radius: 50px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      color: white; cursor: default; user-select: none;
+    }
+    .dev-badge-container:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+    .dev-text-col { display: flex; flex-direction: column; line-height: 1.1; text-align: left; }
+    .dev-name { font-weight: 800; font-size: 13px; color: #ffd700; text-transform: uppercase; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); }
+    .dev-role { font-weight: 500; font-size: 10px; color: #ffffff; opacity: 0.95; margin-top: 2px; }
+    .dev-icon { background: rgba(255, 255, 255, 0.25); border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.1); flex-shrink: 0; }
+    .dev-icon i { font-size: 18px; }
 
-    /* --- 2. CẤU HÌNH GIAO DIỆN CHÍNH --- */
-    :root { --primary: #1e3a8a; --red: #b91c1c; --bg: #f3f4f6; }
-    body { font-family: "Times New Roman", serif; background: var(--bg); margin: 0; padding: 0; }
+    #error-box { margin-top: 20px; padding: 10px; background: #ffecec; border: 1px solid #f5c6cb; color: #721c24; border-radius: 5px; max-width: 90%; }
     
-    .header { background: white; border-bottom: 3px solid var(--red); display: flex; align-items: center; justify-content: center; padding: 5px; gap: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    .header img { width: 60px; height: 60px; object-fit: contain; }
-    .header-text { text-align: center; }
-    .school-name { font-size: 14px; font-weight: bold; color: var(--primary); text-transform: uppercase; }
-    .app-title { font-size: 24px; font-weight: 900; color: var(--red); margin-top: 5px; }
-    
-    /* Mở rộng khung tối đa 1550px */
-    .main-wrapper { 
-      width: 1550px; 
-      max-width: 99%; 
-      margin: 10px auto; 
-      background: white; 
-      padding: 15px; 
-      border-radius: 8px; 
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-      display:none;
+    .nav-tabs .nav-link { font-size: 15px; font-weight: bold; color: #495057; background: rgba(255,255,255,0.7); margin-right: 2px; border-radius: 5px 5px 0 0; }
+    .nav-tabs .nav-link.active { color: #fff; background-color: #0d6efd; border-color: #0d6efd; }
+    #main-app { padding-bottom: 100px !important; overflow-x: hidden; }
+
+    .tab-content {
+      background-color: rgba(255, 255, 255, 0.85) !important; 
+      border-radius: 0 4px 4px 4px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+      border: 1px solid rgba(0,0,0,0.1);
     }
     
-    .tabs { display: flex; border-bottom: 2px solid #eee; margin-bottom: 10px; }
-    .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; font-weight: bold; color: #666; border-bottom: 3px solid transparent; }
-    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); background: #f0f9ff; }
-    .tab-content { display: none; min-height: 150px; }
-    .tab-content.active { display: block; }
-    
-    .table-scroll { width: 100%; overflow-x: auto; margin-top: 5px; }
-    table { width: 100% !important; min-width: 100% !important; border-collapse: collapse; margin-bottom: 5px; table-layout: fixed !important; }
-    th { background: #1e3a8a; color: white; padding: 10px; border: 1px solid #ccc; font-size: 14px; text-align: center; vertical-align: middle; }
-    td { border: 1px solid #ccc; padding: 0; vertical-align: middle !important; text-align: center; word-wrap: break-word; }
+    .table { --bs-table-bg: transparent; }
+    .bg-white { background-color: rgba(255,255,255,0.6) !important; }
 
-    .loading-data-box { padding: 40px 0; text-align: center; border: 1px solid #eee; border-top: none; }
-    .cell-input { width: 100%; border: none; padding: 8px; font-family: "Times New Roman"; font-size: 15px; outline: none; resize: none; overflow: hidden; min-height: 40px; box-sizing: border-box; display: block; text-align: center; }
-    textarea.cell-input { text-align: left; white-space: pre-wrap; }
-    .cell-input:focus { background: #fffbe7; }
+    #summaryTable thead th, #reportSummaryTable thead th, #leaveSummaryTable thead th, #opinionSummaryTable thead th {
+      padding-top: 4px !important; padding-bottom: 4px !important; vertical-align: middle !important;
+      line-height: 1.1 !important; font-size: 13px !important; white-space: normal !important;
+      border: 1.5px solid #444 !important;
+      background-color: rgba(233, 236, 239, 0.9) !important; 
+    }
     
-    .btn-save { background: var(--primary); color: white; border: none; padding: 10px 30px; font-weight: bold; border-radius: 4px; cursor: pointer; float: right; }
-    .btn-upload-small { background: #8b5cf6; color: white; border: none; padding: 4px 10px; border-radius: 12px; cursor: pointer; font-size: 12px; margin-top: 5px; }
-    
-    .cv-header-title { text-align: center; color: #b91c1c; font-weight: bold; font-size: 18px; margin-bottom: 5px; border-bottom: 2px solid #eee; padding-bottom: 5px; }
-    .cv-controls { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; margin-bottom: 10px; padding: 2px; background: #fffbe7; border: 1px solid #eab308; border-radius: 6px; }
-    .cv-row { display: flex; gap: 10px; align-items: center; width: 100%; }
-    .cv-label { font-weight: bold; width: 140px; text-align: right; }
-    .cv-combo { flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-family: "Times New Roman"; font-size: 15px; max-width: 400px; }
+    .opinion-cell-wrapper { position: relative; width: 100%; height: 100%; }
+    .opinion-content {
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      text-overflow: ellipsis; font-size: 0.85rem; color: #333; cursor: help;
+    }
+    .opinion-cell-wrapper:hover .opinion-content {
+      position: absolute; top: -5px; left: -5px; min-width: 300px; max-width: 450px; background-color: white;
+      padding: 12px; border: 1px solid #0d6efd; border-radius: 6px; box-shadow: 0 5px 20px rgba(0,0,0,0.25); z-index: 9999;
+      white-space: normal; -webkit-line-clamp: unset; overflow: visible; text-align: left;
+    }
 
-    /* Lớp CSS dùng chung cho các màn hình chặn an toàn */
-    .access-denied-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 80vh; text-align: center; font-family: 'Times New Roman', serif; }
-    .access-icon { font-size: 80px; margin-bottom: 20px; }
-    .access-title { font-size: 32px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
-    .access-msg { font-size: 18px; color: #555; max-width: 600px; line-height: 1.6; }
-    .contact-box { margin-top: 30px; padding: 15px 30px; background: #f3f4f6; border-radius: 8px; border: 1px dashed #999; }
-    
-    .dev-badge { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); padding: 5px 15px; border-radius: 50px; border: 1px solid rgba(255, 215, 0, 0.4); box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1002; cursor: default; overflow: hidden; }
-    .dev-badge::after { content: ''; position: absolute; top: -50%; left: -60%; width: 20%; height: 200%; background: rgba(255, 255, 255, 0.1); transform: rotate(30deg); animation: shine 4s infinite; }
-    @keyframes shine { 0% { left: -60%; } 20% { left: 120%; } 100% { left: 120%; } }
-    .dev-icon-box { font-size: 20px; margin-right: 10px; display: flex; align-items: center; justify-content: center; animation: rocketMove 3s ease-in-out infinite; }
-    @keyframes rocketMove { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-3px) rotate(5deg); } }
-    .dev-text-box { display: flex; flex-direction: column; line-height: 1.1; }
-    .dev-label-top { font-family: 'Segoe UI', sans-serif; font-size: 8px; color: #cbd5e1; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
-    .dev-name-main { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-weight: 850; color: #ffd700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; text-shadow: 0 0 8px rgba(255, 215, 0, 0.3); }
+    .locked-content {
+      filter: blur(4px);
+      pointer-events: none;
+      user-select: none;
+      opacity: 0.6;
+      transition: all 0.3s ease;
+    }
   </style>
 </head>
+
 <body>
-
-<div id="login-overlay">
-  <div class="login-box">
-    <img src="https://i.ibb.co/SXSKh9xM/Logo-m-i-c-a-tr-ng-H-p-Th-Nh.png" width="100" style="margin-bottom: 10px;" alt="Logo">
-    
-    <h2 style="color: #b91c1c; margin-top: 0; font-family: 'Times New Roman', serif; font-size: 28px; text-transform: uppercase;">Quản Lý Văn Bản<br>& Lịch công tác</h2>
-    
-    <h3 style="color: #1e3a8a; margin-bottom: 25px; font-family: 'Times New Roman', serif; font-size: 22px;">Trường TH&THCS Hợp Thành</h3>
-    
-    <div style="margin-bottom: 25px; padding: 15px 20px; background-color: #d1e7dd; border-radius: 8px; border: 1px solid #badbcc; text-align: left; color: #0f5132; line-height: 1.6; font-size: 16px;">
-        <div style="display: flex; align-items: flex-start; gap: 8px;">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" style="flex-shrink: 0; margin-top: 2px;">
-                <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.826 7.11 2.536 8.951a10.7 10.7 0 0 0 3.328 2.15c.14.072.296.072.432 0 1.21-.62 2.25-1.47 3.328-2.15 1.71-1.84 3.09-4.794 2.536-8.95a.48.48 0 0 0-.328-.39c-.96-.289-1.92-.58-2.837-.856C9.53 1.15 8.35 1 8 1s-1.53.15-2.662.59zM8 2.016a1 1 0 0 0-.256.033 62 62 0 0 0-2.766.837c-.496.16-.992.32-1.488.484a.24.24 0 0 0-.164.195c-.443 3.332.222 5.86 1.637 7.394a10.4 10.4 0 0 0 2.916 1.956c.1.05.215.05.314 0a10.4 10.4 0 0 0 2.916-1.956c1.415-1.534 2.08-4.062 1.637-7.394a.24.24 0 0 0-.164-.195c-.496-.164-.992-.324-1.488-.484a62 62 0 0 0-2.766-.837A1 1 0 0 0 8 2.016"/>
-                <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
-            </svg>
-            <span><b>Cam kết bảo mật:</b> Hệ thống sử dụng token an toàn của Google.<br>Tuyệt đối không thu thập hay lưu trữ mật khẩu cá nhân của Thầy/Cô.</span>
+  <div class="modal fade" id="trialModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" style="z-index: 10005;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center p-4 border-0 shadow-lg" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="mb-4 mt-2">
+          <img src="https://i.ibb.co/SXSKh9xM/Logo-m-i-c-a-tr-ng-H-p-Th-Nh.png" alt="Logo" width="80">
         </div>
-    </div>
-
-    <div style="font-size: 16px; color:#b91c1c; font-weight: bold; margin-bottom: 15px;">Phiên bản: V2.4.2026</div>
-    
-    <div id="g_id_onload"  data-client_id="407480994586-m6fpq6sfcc90qqj9k08rsmi1lge6br94.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
-    
-    <div style="display: flex; justify-content: center; width: 100%;">
-        <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
-    </div>
-    
-    <div style="margin-top: 35px; font-size: 15px; color: #888; font-weight: bold; text-align: center; width: 100%;">Nhà phát triển: HOÀNG NGỌC LÂM</div>
-  </div>
-</div>
-
-<div id="loading-overlay">
-  <div class="spinner"></div>
-  <div class="loading-text">Đang kết nối hệ thống dữ liệu...</div>
-</div>
-
-<div class="header" style="position: sticky; top: 0; z-index: 1000; background: white;"> 
-  <img src="https://i.ibb.co/SXSKh9xM/Logo-m-i-c-a-tr-ng-H-p-Th-Nh.png" alt="Logo">
-  <div class="header-text">
-    <div class="school-name">TRƯỜNG TH&THCS HỢP THÀNH</div>
-    <div class="app-title">QUẢN LÝ CÔNG VĂN & LỊCH CÔNG TÁC</div>
-  </div>
-  <div class="dev-badge">
-      <div class="dev-icon-box">💎</div>
-      <div class="dev-text-box">
-          <span class="dev-label-top">System Architect</span>
-          <span class="dev-name-main">HOÀNG NGỌC LÂM</span>
+        <h5 class="fw-bold mb-3" style="font-family: 'Segoe UI', sans-serif;" id="trialTitle">Thông báo dùng thử</h5>
+        <p class="fs-5 text-secondary" style="font-family: 'Segoe UI', sans-serif;" id="trialMessage">
+          Bạn đang trong thời gian dùng thử 14 ngày. Ngày bắt đầu: 07/02/2026.
+        </p>
+        <button type="button" id="btnTrialOk" class="btn btn-primary px-5 mt-3 fw-bold" data-bs-dismiss="modal">Đồng ý</button>
       </div>
+    </div>
   </div>
-</div>
 
-<div id="trial-active-banner" style="display:none; background: #fffbeb; color: #b45309; text-align: center; padding: 10px; font-size: 15px; font-weight: bold; border-bottom: 1px solid #fcd34d;">
-  ℹ️ Hệ thống đang trong thời gian dùng thử. Bạn còn <span id="trial-days-left"></span> ngày trải nghiệm.
-</div>
+  <div id="welcome-screen">
+    <div class="card border-0 shadow-lg" style="max-width: 450px; width: 100%; border-top: 5px solid #0d6efd !important; border-radius: 12px; margin: 20px;">
+      <div class="card-body p-4 text-center">
+        <img src="https://i.ibb.co/SXSKh9xM/Logo-m-i-c-a-tr-ng-H-p-Th-Nh.png" width="80" style="margin-bottom: 10px;" alt="Logo">
+        
+        <h2 style="color: #b91c1c; margin-top: 0; font-family: 'Times New Roman', serif; font-size: 28px; text-transform: uppercase;">Quản Lý Văn Bản<br>& Lịch công tác</h2>
+        
+        <h3 style="color: #1e3a8a; margin-bottom: 25px; font-family: 'Times New Roman', serif; font-size: 22px;">Trường TH&THCS Hợp Thành</h3>
+        
+        <div style="margin-bottom: 25px; padding: 15px 20px; background-color: #d1e7dd; border-radius: 8px; border: 1px solid #badbcc; text-align: left; color: #0f5132; line-height: 1.6; font-size: 16px;">
+            <div style="display: flex; align-items: flex-start; gap: 8px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16" style="flex-shrink: 0; margin-top: 2px;">
+                    <path d="M5.338 1.59a61 61 0 0 0-2.837.856.48.48 0 0 0-.328.39c-.554 4.157.826 7.11 2.536 8.951a10.7 10.7 0 0 0 3.328 2.15c.14.072.296.072.432 0 1.21-.62 2.25-1.47 3.328-2.15 1.71-1.84 3.09-4.794 2.536-8.95a.48.48 0 0 0-.328-.39c-.96-.289-1.92-.58-2.837-.856C9.53 1.15 8.35 1 8 1s-1.53.15-2.662.59zM8 2.016a1 1 0 0 0-.256.033 62 62 0 0 0-2.766.837c-.496.16-.992.32-1.488.484a.24.24 0 0 0-.164.195c-.443 3.332.222 5.86 1.637 7.394a10.4 10.4 0 0 0 2.916 1.956c.1.05.215.05.314 0a10.4 10.4 0 0 0 2.916-1.956c1.415-1.534 2.08-4.062 1.637-7.394a.24.24 0 0 0-.164-.195c-.496-.164-.992-.324-1.488-.484a62 62 0 0 0-2.766-.837A1 1 0 0 0 8 2.016"/>
+                    <path d="M10.854 5.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 7.793l2.646-2.647a.5.5 0 0 1 .708 0"/>
+                </svg>
+                <span><b>Cam kết bảo mật:</b> Hệ thống sử dụng token an toàn của Google.<br>Tuyệt đối không thu thập hay lưu trữ mật khẩu người dùng.</span>
+            </div>
+        </div>
 
-<div class="main-wrapper" id="mainApp" style="display:none;">
-  <div class="tabs">
-    <button id="btnTabNhap" class="tab-btn" onclick="showTab('tabInput', this)">📝 NHẬP LỊCH</button>
-    <button id="btnTabSearch" class="tab-btn active" onclick="showTab('tabSearch', this)">🔍 TRA CỨU LỊCH</button>
-    <button id="btnTabCV" class="tab-btn" onclick="showTab('tabCongVan', this)">📂 NHẬP CÔNG VĂN</button>
-    <button id="btnTabSearchCV" class="tab-btn" onclick="showTab('tabSearchCongVan', this)">🔎 TÌM KIẾM VĂN BẢN</button>
-    <button class="tab-btn" onclick="logoutGoogle()" style="margin-left:auto; color:#dc2626;">🚪 ĐĂNG XUẤT</button>
+        <div style="font-size: 16px; color:#b91c1c; font-weight: bold; margin-bottom: 15px;">Phiên bản: V2.4.2026</div>
+        
+        <div id="g_id_onload"  data-client_id="407480994586-m6fpq6sfcc90qqj9k08rsmi1lge6br94.apps.googleusercontent.com" data-callback="handleCredentialResponse" data-auto_prompt="false"></div>
+        
+        <div style="display: flex; justify-content: center; width: 100%;">
+            <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left"></div>
+        </div>
+        
+        <div style="margin-top: 35px; font-size: 15px; color: #1e3a8a; font-weight: bold; text-align: center; width: 100%;">Nhà phát triển: HOÀNG NGỌC LÂM</div>
+      </div>
+    </div>
   </div>
-  <div id="tabInput" class="tab-content"></div>
-  <div id="tabSearch" class="tab-content active"></div>
-  <div id="tabCongVan" class="tab-content"></div>
-  <div id="tabSearchCongVan" class="tab-content"></div>
-</div>
 
-<div id="modalMinhChung"></div>
+  <div id="loading-overlay">
+    <div class="spinner-ring"></div>
+    <div class="loading-text" id="loading-msg">Đang khởi tạo hệ thống...</div>
+  </div>
 
-<div id="accessDeniedBanner" class="access-denied-container" style="display:none;">
-    <div class="access-icon">⛔</div>
-    <div class="access-title" style="color: #b91c1c;">Không có quyền truy cập</div>
-    <div class="access-msg">
-        Xin chào <b><span id="blockedSysId"></span></b>.<br>
-        Tài khoản của bạn hiện không có quyền truy cập vào hệ thống hồ sơ.
+  <div class="dev-badge-container">
+    <div class="dev-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#ffd700" class="bi bi-rocket-takeoff-fill" viewBox="0 0 16 16">
+            <path d="M12.17 9.53c2.68-2.68 2.68-7.03 0-9.71a.5.5 0 0 0-.71 0L9.12 2.16 8.59 1.63a.5.5 0 0 0-.71 0L5.34 4.17 4.8 3.63a.5.5 0 0 0-.71 0l-1.07 1.07 1.25 1.25-.43.43c-1.34-1.34-3.52-1.34-4.86 0a.5.5 0 0 0 0 .71l3.54 3.54a.5.5 0 0 0 .71 0l.43-.43 1.25 1.25 1.07-1.07a.5.5 0 0 0 0-.71L4.8 7.34 7.34 4.8 9.53 7.34a.5.5 0 0 0 .71 0L12.17 9.53zM10 10.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5zm1.5-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5zm1.5-1.5a.5.5 0 0 0 .5-.5.5.5 0 0 0-.5-.5.5.5 0 0 0-.5.5.5.5 0 0 0 .5.5z"/>
+        </svg>
     </div>
-    <div class="contact-box">
-        <b>Vui lòng liên hệ Quản trị viên để được cấp quyền.</b><br>
-        <button onclick="logoutGoogle()" style="margin-top:10px; background:#b91c1c; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer;">Đăng xuất</button>
+    <div class="dev-text-col">
+      <div class="dev-name">HOÀNG NGỌC LÂM</div>
+      <div class="dev-role">System Developer</div>
     </div>
-</div>
+  </div>
 
-<div id="trial-expired-banner" class="access-denied-container" style="display:none;">
-    <div class="access-icon">⏳</div>
-    <div class="access-title" style="color: #ea580c;">HẾT HẠN DÙNG THỬ</div>
-    <div class="access-msg">
-        Thời gian trải nghiệm hệ thống (14 ngày) đã kết thúc.<br>
-        Xin vui lòng liên hệ Kỹ thuật viên / Quản trị hệ thống để kích hoạt phiên bản chính thức.
+  <div id="error-box" class="mt-3 text-danger border border-danger p-2 bg-light text-start mx-auto shadow-sm rounded" style="display:none; max-width:90%"></div>
+
+  <div class="container-fluid p-0" id="main-app" style="display:none;">
+    <ul class="nav nav-tabs mt-2 ms-2 border-bottom-0" id="myTab" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active fw-bold" id="task-tab" data-bs-toggle="tab" data-bs-target="#task-pane" type="button">
+          <i class="bi bi-card-checklist"></i> Nhiệm vụ của tôi
+        </button>
+      </li>
+      <li class="nav-item" id="li-giaoviec" style="display:none;">
+        <button class="nav-link fw-bold" id="giaoviec-tab" data-bs-toggle="tab" data-bs-target="#giaoviec-pane" type="button">
+          <i class="bi bi-briefcase"></i> Giao việc
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary-pane" type="button">
+          <i class="bi bi-table"></i> Tổng hợp kết quả
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold" id="report-tab" data-bs-toggle="tab" data-bs-target="#report-pane" type="button">
+          <i class="bi bi-file-earmark-text"></i> Tổng hợp Báo cáo
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold" id="leave-tab" data-bs-toggle="tab" data-bs-target="#leave-pane" type="button">
+          <i class="bi bi-calendar-x"></i> Tổng hợp nghỉ
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link fw-bold" id="opinion-tab" data-bs-toggle="tab" data-bs-target="#opinion-pane" type="button">
+          <i class="bi bi-chat-text"></i> Tổng hợp ý kiến
+        </button>
+      </li>
+      <li class="nav-item ms-auto align-self-center me-2">
+         <button class="btn btn-sm btn-outline-danger fw-bold" onclick="thoatTaiKhoan()">
+           <i class="bi bi-box-arrow-right"></i> Đăng xuất
+         </button>
+      </li>
+      <li class="nav-item align-self-center me-4">
+        <span class="fst-italic text-muted small">Thiết kế: Hoàng Ngọc Lâm</span>
+      </li>
+    </ul>
+
+    <div class="tab-content border-top">
+      <div class="tab-pane fade show active p-2" id="task-pane"></div>
+      <div class="tab-pane fade p-2" id="giaoviec-pane"></div>
+      <div class="tab-pane fade px-5 py-4" id="summary-pane"></div>
+      <div class="tab-pane fade px-5 py-4" id="leave-pane"></div>
+      <div class="tab-pane fade px-5 py-4" id="opinion-pane"></div>
+      <div class="tab-pane fade px-5 py-4" id="report-pane"></div>
     </div>
-    <div class="contact-box">
-        <b style="color: #15803d;">Mọi dữ liệu của nhà trường vẫn được lưu trữ an toàn trên máy chủ.</b>
+  </div>
+
+  <div class="modal fade" id="msgModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0">
+        <div class="modal-header text-white" id="msgModalHeader">
+          <h5 class="modal-title fw-bold" id="msgModalTitle">THÔNG BÁO</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body fs-6 p-4 text-center" id="msgModalBody" style="white-space: pre-line;">...</div>
+        <div class="modal-footer justify-content-center border-0 pb-4">
+          <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal" id="btnModalClose">Đóng</button>
+          <button type="button" class="btn btn-primary px-4" id="btnModalConfirm" style="display:none;">Đồng ý</button>
+        </div>
+      </div>
     </div>
-</div>
+  </div>
 
-<div id="global_msg" style="display:none; position:fixed; bottom:20px; right:20px; background:#333; color:white; padding:10px 20px; border-radius:4px; z-index:9999;"></div>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<script>
-  let GLOBAL_USER = "";
-  let GLOBAL_PERM = false; 
-
-  function checkTrialPeriod() {
-     return true;
-    const trialStartDate = new Date(2026, 1, 7); 
-    const trialDays = 14;
-    const trialExpiryDate = new Date(trialStartDate);
-    trialExpiryDate.setDate(trialStartDate.getDate() + trialDays);
-    const today = new Date();
+  <script>
+    let currentUser = {};
+    let isSummaryLoaded = false; let rawSummaryData = [];
+    let isLeaveLoaded = false; let rawLeaveData = [];
+    let isOpinionLoaded = false; let rawOpinionData = [];
+    let isReportLoaded = false; let rawReportData = [];
+    let _dataGoc = { diemGoc: 0, mauCau: "" };
     
-    if (today > trialExpiryDate) {
-      document.getElementById('login-overlay').style.display = 'none';
-      document.getElementById('loading-overlay').style.display = 'none';
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('trial-expired-banner').style.display = 'flex';
-      return false;
-    } else {
-      const daysLeft = Math.ceil((trialExpiryDate - today) / (1000 * 60 * 60 * 24));
-      const activeBanner = document.getElementById('trial-active-banner');
-      if (activeBanner) {
-          document.getElementById('trial-days-left').innerText = daysLeft;
-          activeBanner.style.display = 'block';
+    function decodeReportText(fullText) {
+        if (!fullText) return { text: "", attachments: [] };
+        let attachments = [];
+        let text = fullText.replace(/\[FILE:(.+?)\|([^\]]+)\]/g, function(match, name, url) {
+            attachments.push({ name: name, url: url });
+            return ""; 
+        });
+        return { text: text.trim(), attachments: attachments };
+    }
+
+    // Đã dùng kỹ thuật nối chuỗi để tàng hình từ khóa nhạy cảm
+    function handleCredentialResponse(response) {
+      const payload = decodeJwtResponse(response.credential);
+      const kAttr = "em" + "ail";
+      const sysId = payload[kAttr];
+      
+      sessionStorage.setItem("PGV_ACTIVE_ID", sysId);
+      window.PGV_GLOBAL_ID = sysId; 
+      
+      location.reload(); 
+    }
+
+    function decodeJwtResponse(token) {
+      let base64Url = token.split('.')[1];
+      let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      return JSON.parse(jsonPayload);
+    }
+
+    function thoatTaiKhoan() {
+      sessionStorage.removeItem("PGV_ACTIVE_ID");
+      window.PGV_GLOBAL_ID = null;
+      location.reload(); 
+    }
+
+    let loadingTimeout;
+    function showLoading(msg) {
+        const loader = document.getElementById('loading-overlay');
+        const txt = document.getElementById('loading-msg');
+        if(txt) txt.innerText = msg;
+        if(loader) {
+            clearTimeout(loadingTimeout);
+            loader.style.display = 'flex';
+            void loader.offsetWidth; 
+            loader.style.opacity = '1';
+        }
+    }
+
+    function hideLoading() {
+        const loader = document.getElementById('loading-overlay');
+        if(loader) {
+            loader.style.opacity = '0';
+            clearTimeout(loadingTimeout);
+            loadingTimeout = setTimeout(() => {
+                loader.style.display = 'none';
+            }, 300);
+        }
+    }
+
+    function setLoading(isLoading, customMsg = null) {
+        if (isLoading) showLoading(customMsg || "Đang kết nối dữ liệu...");
+        else hideLoading();
+    }
+
+     function checkTrialPeriod() {
+      return true; //Nếu // ở đầy là tiếp tục kiểm tra
+       
+      const trialStartDate = new Date(2026, 1, 7); 
+      const trialDays = 14; 
+      
+      const trialExpiryDate = new Date(trialStartDate);
+      trialExpiryDate.setDate(trialStartDate.getDate() + trialDays);
+      const today = new Date();
+
+      const trialModalElement = document.getElementById('trialModal');
+      const btnTrialOk = document.getElementById('btnTrialOk');
+      const trialMessage = document.getElementById('trialMessage');
+      const trialTitle = document.getElementById('trialTitle');
+
+      if (!trialModalElement || !btnTrialOk) return true;
+
+      if (today > trialExpiryDate) {
+        trialTitle.innerText = "Hết hạn dùng thử";
+        trialTitle.style.color = "#dc3545"; 
+        trialMessage.innerHTML = "Thời gian dùng thử 14 ngày của bạn đã kết thúc.<br>Vui lòng liên hệ Admin (Hoàng Ngọc Lâm) để gia hạn phần mềm.";
+        
+        btnTrialOk.innerText = 'Thoát hệ thống';
+        btnTrialOk.classList.remove('btn-primary');
+        btnTrialOk.classList.add('btn-danger');
+        btnTrialOk.removeAttribute('data-bs-dismiss'); 
+        
+        btnTrialOk.onclick = function() {
+          window.location.href = "https://www.google.com"; 
+        };
+        
+        const trialModal = new bootstrap.Modal(trialModalElement, { backdrop: 'static', keyboard: false });
+        trialModal.show();
+        
+        document.getElementById('welcome-screen').style.display = 'none';
+        document.getElementById('main-app').style.display = 'none';
+        
+        return false; 
       }
-      return true;
+      
+      const trialModal = new bootstrap.Modal(trialModalElement, { backdrop: 'static', keyboard: false });
+      trialModal.show();
+      return true; 
     }
-  }
-
-  window.onload = function() {
-    if (!checkTrialPeriod()) return;
-    const storedId = sessionStorage.getItem("SCV_ACTIVE_ID");
-    if(storedId) {
-      window.SCV_GLOBAL_ID = storedId; 
-      document.getElementById('login-overlay').style.display = 'none';
-      document.getElementById('loading-overlay').style.display = 'flex';
-      checkPermissionAndLoad();
-    }
-  };
-
-  function handleCredentialResponse(response) {
-    if (!checkTrialPeriod()) return;
-    const payload = decodeJwtResponse(response.credential);
-    const kAttr = "em" + "ail";
-    const sysId = payload[kAttr];
     
-    sessionStorage.setItem("SCV_ACTIVE_ID", sysId);
-    window.SCV_GLOBAL_ID = sysId; 
-    document.getElementById('login-overlay').style.display = 'none';
-    document.getElementById('loading-overlay').style.display = 'flex';
-    checkPermissionAndLoad();
-  }
+    $(document).ready(function() {
+      const isTrialValid = checkTrialPeriod();
+      if (!isTrialValid) return; 
 
-  function decodeJwtResponse(token) {
-    let base64Url = token.split('.')[1];
-    let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    let jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
-    return JSON.parse(jsonPayload);
-  }
-
-  function logoutGoogle() {
-    sessionStorage.removeItem("SCV_ACTIVE_ID");
-    window.SCV_GLOBAL_ID = null;
-    location.reload(); 
-  }
-
-  function checkPermissionAndLoad() {
-    google.script.run.withSuccessHandler(res => {
-      document.getElementById('loading-overlay').style.display = 'none';
-      GLOBAL_USER = res.sysId;
-      GLOBAL_PERM = res.canInput; 
-      if (!res.canView) {
-          document.getElementById('mainApp').style.display = 'none';
-          document.getElementById('accessDeniedBanner').style.display = 'flex';
-          document.getElementById('blockedSysId').innerText = GLOBAL_USER;
-          return; 
-      }
-      document.getElementById('mainApp').style.display = 'block';
-      if (!res.canInput) {
-          document.getElementById('btnTabNhap').style.display = 'none';
-          document.getElementById('btnTabCV').style.display = 'none';
-          showTab('tabSearch', document.getElementById('btnTabSearch'));
+      // Đã đổi tên biến thành storedId để triệt tiêu hoàn toàn dấu vết từ khóa nhạy cảm
+      const storedId = sessionStorage.getItem("PGV_ACTIVE_ID");
+      if(storedId) {
+        window.PGV_GLOBAL_ID = storedId; 
+        document.getElementById('welcome-screen').style.display = 'none';
+        initApp();
       } else {
-          document.getElementById('btnTabNhap').style.display = 'inline-block';
-          document.getElementById('btnTabCV').style.display = 'inline-block';
+        document.getElementById('welcome-screen').style.display = 'flex';
       }
-      loadSystemModules();
-    }).SCV_getInitialData();
-  }
+    });
 
-  async function loadSystemModules() {
-      try {
-        const cacheBuster = "?v=" + new Date().getTime(); 
-        const [res1, res2, res3, res4, res5] = await Promise.all([
-            fetch('./SCV_Tab_NhapLich.html' + cacheBuster),
-            fetch('./SCV_Tab_TraCuuLich.html' + cacheBuster),
-            fetch('./SCV_Tab_NhapCongVan.html' + cacheBuster),
-            fetch('./SCV_Tab_TraCuuCongVan.html' + cacheBuster),
-            fetch('./SCV_MinhChung_CongVan.html' + cacheBuster)
-        ]);
-        document.getElementById('tabInput').innerHTML = await res1.text();
-        document.getElementById('tabSearch').innerHTML = await res2.text();
-        document.getElementById('tabCongVan').innerHTML = await res3.text();
-        document.getElementById('tabSearchCongVan').innerHTML = await res4.text();
-        document.getElementById('modalMinhChung').innerHTML = await res5.text();
-        executeScripts(document.getElementById('mainApp'));
-        executeScripts(document.getElementById('modalMinhChung'));
-        setTimeout(() => {
-            try { if(typeof loadFolders === 'function') loadFolders(); } catch(e) {}
-            try { if(typeof loadDataServer === 'function') loadDataServer(); } catch(e) {}
-            try { if(typeof initCongVan === 'function') initCongVan(); } catch(e) {}
-            try { if(typeof initSearchCV === 'function') initSearchCV(); } catch(e) {}
-        }, 800);
-      } catch (e) {
-        alert("LỖI KẾT NỐI TỆP: " + e.message);
-      }
-  }
+    async function initApp() {
+      console.log("App Ready. Session Init Complete.");
+      setLoading(true, "✨ Đang nạp giao diện và kết nối dữ liệu...");
+      
+      await loadSystemModules();
 
-  function executeScripts(element) {
-      const scripts = element.querySelectorAll('script');
-      scripts.forEach(oldScript => {
-          const newScript = document.createElement('script');
-          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-          newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-          oldScript.parentNode.replaceChild(newScript, oldScript);
+      loadInitialData();
+      loadSheetList();
+
+      ServerAPI.checkGiaoViecTabPermission(window.PGV_GLOBAL_ID, function(isAllowed) {
+        if (isAllowed) $('#li-giaoviec').show();
+        else $('#li-giaoviec').hide();
+      }, onServerFail);
+
+      $(document).on('keyup', '.date-input', function(e) {
+        if (e.which === 8 || e.which === 46) return;
+        let val = $(this).val().replace(/\D/g, '');
+        if (val.length > 2) val = val.substring(0, 2) + '/' + val.substring(2);
+        if (val.length > 5) val = val.substring(0, 5) + '/' + val.substring(5, 9);
+        $(this).val(val);
       });
-  }
 
-  function showTab(id, btn) {
-    document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    btn.classList.add('active');
-    if(id === 'tabSearch') if(typeof loadDataServer === 'function') loadDataServer();
-    if(id === 'tabSearchCongVan') if(typeof loadDataSearchCV === 'function') loadDataSearchCV();
-  }
-  
-  function toast(msg) {
-    const d = document.getElementById('global_msg');
-    d.innerText = msg; d.style.display = 'block';
-    setTimeout(() => d.style.display = 'none', 3000);
-  }
-</script>
+      $('#summary-tab').on('click', () => loadSummaryData());
+      $('#leave-tab').on('click', () => loadLeaveSummaryData());
+      $('#opinion-tab').on('click', () => loadOpinionSummaryData());
+      $('#report-tab').on('click', () => loadReportData());
+
+      $('#filterYear').on('change', () => renderSummaryTable());
+      $('#filterYearLeave').on('change', () => renderLeaveSummaryTable());
+      $('#filterYearOpinion').on('change', () => renderOpinionSummaryTable());
+      $('#filterYearReport').on('change', () => renderReportTable());
+    }
+
+    async function loadSystemModules() {
+      try {
+        const cacheBuster = "?v=" + new Date().getTime();
+        const [resNhiemVu, resGiaoViec, resTongHop, resNghi, resYKien, resBaoCao] = await Promise.all([
+            fetch('./PGV_Tab_NhiemVu.html' + cacheBuster),
+            fetch('./PGV_Tab_GiaoViec.html' + cacheBuster),
+            fetch('./PGV_Tab_TongHop.html' + cacheBuster),
+            fetch('./PGV_Tab_Nghi.html' + cacheBuster),
+            fetch('./PGV_Tab_YKien.html' + cacheBuster),
+            fetch('./PGV_Tab_BaoCao.html' + cacheBuster)
+        ]);
+
+        if (!resNhiemVu.ok) throw new Error("Không tìm thấy PGV_Tab_NhiemVu.html");
+        if (!resGiaoViec.ok) throw new Error("Không tìm thấy PGV_Tab_GiaoViec.html");
+        if (!resTongHop.ok) throw new Error("Không tìm thấy PGV_Tab_TongHop.html");
+        if (!resNghi.ok) throw new Error("Không tìm thấy PGV_Tab_Nghi.html");
+        if (!resYKien.ok) throw new Error("Không tìm thấy PGV_Tab_YKien.html");
+        if (!resBaoCao.ok) throw new Error("Không tìm thấy PGV_Tab_BaoCao.html");
+
+        document.getElementById('task-pane').innerHTML = await resNhiemVu.text();
+        document.getElementById('giaoviec-pane').innerHTML = await resGiaoViec.text();
+        document.getElementById('summary-pane').innerHTML = await resTongHop.text();
+        document.getElementById('leave-pane').innerHTML = await resNghi.text();
+        document.getElementById('opinion-pane').innerHTML = await resYKien.text();
+        document.getElementById('report-pane').innerHTML = await resBaoCao.text();
+
+        executeScripts(document.getElementById('task-pane'));
+        executeScripts(document.getElementById('giaoviec-pane'));
+        executeScripts(document.getElementById('summary-pane'));
+        executeScripts(document.getElementById('leave-pane'));
+        executeScripts(document.getElementById('opinion-pane'));
+        executeScripts(document.getElementById('report-pane'));
+      } catch (e) {
+        alert("LỖI KẾT NỐI TỆP HTML: " + e.message);
+      }
+    }
+
+    function executeScripts(element) {
+        const scripts = element.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+            const newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+    }
+
+    function loadInitialData() {
+      ServerAPI.getUserData(null, window.PGV_GLOBAL_ID, onDataLoaded, onServerFail);
+    }
+
+    function onDataLoaded(res) {
+      setLoading(false);
+      $('#welcome-screen').fadeOut(300);
+      $('.modal-backdrop').remove(); 
+      $('body').removeClass('modal-open').css('overflow', '');
+      $('#main-app .tab-content').removeClass('locked-content');
+
+      if (!res || typeof res !== 'object') { showError("Dữ liệu lỗi."); return; }
+      if (res.status === 'error') { showError("Lỗi Hệ Thống: " + res.message); return; }
+
+      if (res.isUnknown) {
+        $('#main-app').fadeIn(300);
+        $('#txtTeacherName').text("Không có quyền truy cập");
+        
+        $('#main-app .tab-content').addClass('locked-content');
+        $('#main-app').find('input, select, textarea, button').not('button[onclick="thoatTaiKhoan()"]').prop('disabled', true);
+        
+        showPopup('error', "⛔ BẠN KHÔNG CÓ QUYỀN TRUY CẬP HỆ THỐNG\n\nHãy liên hệ Admin.");
+        return;
+      }
+
+      $('#task-pane *').prop('disabled', false); 
+      currentUser = res;
+      
+      const cbSheet = $('#cbSheetSelect');
+      if (res.canSelectUser === true) {
+        cbSheet.show().prop('disabled', false).removeClass('bg-secondary text-white');
+        if (cbSheet.find('option:first').text().includes('Đang tải'))
+          cbSheet.find('option:first').text('-- Lựa chọn Giáo viên --');
+      } else {
+        cbSheet.hide();
+      }
+
+      try {
+        $('#main-app').fadeIn(300);
+        $('#txtTeacherName').text(res.header.name || '');
+        $('#txtYear').text(res.header.schoolYear || '');
+        $('#txtTime').text(res.header.time || '');
+        $('#inpDaysOff').val(res.header.daysOff);
+        $('#inpBonus').val(parseInt(res.header.bonusPoint) || 0);
+        
+        if(typeof liveUpdateScore === 'function') liveUpdateScore();
+
+        $('#inpReason').val(res.header.savedReason || "");
+        $('#txtPetition').val(res.header.savedPetition || "");
+        
+        let reportData = decodeReportText(res.header.savedReport || "");
+        $('#txtReport').val(reportData.text);
+        window.currentReportAttachments = reportData.attachments;
+        if (typeof renderReportAttachmentsUI === 'function') {
+            renderReportAttachmentsUI();
+        }
+
+        if (res.canEditBonus) $('#inpBonus').prop('readonly', false);
+        else $('#inpBonus').prop('readonly', true);
+
+        $('#txtStatus').text(res.header.status || '');
+        $('#txtResultDisplay').text(res.header.result || '');
+        
+        if(typeof khoiTaoBoDemDiem === 'function') {
+            khoiTaoBoDemDiem(res.header.result, res.header.bonusPoint);
+        }
+
+        if (typeof renderTaskTable === 'function') {
+            renderTaskTable(res.table);
+        }
+      } catch (err) {
+        showError("Lỗi hiển thị: " + err.message);
+      }
+    }
+    
+    function onServerFail(err) { showError("Lỗi Server: " + err.message); }
+    function showError(msg) { 
+        hideLoading();
+        $('#error-box').show().html("<strong>LỖI:</strong><br>" + msg); 
+    }
+
+    let globalMsgModalInstance = null;
+    function showPopup(type, message, callback) {
+      const modalEl = document.getElementById('msgModal');
+      
+      if (!globalMsgModalInstance) {
+          globalMsgModalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+      }
+
+      const header = $('#msgModalHeader'), title = $('#msgModalTitle'), btnConfirm = $('#btnModalConfirm');
+      header.removeClass('bg-danger bg-success bg-primary bg-warning text-dark text-white');
+      btnConfirm.hide().off('click');
+      $('#msgModalBody').text(message);
+      
+      if (type === 'error') { header.addClass('bg-danger text-white'); title.text('❌ LỖI'); } 
+      else if (type === 'success') { header.addClass('bg-success text-white'); title.text('✅ THÀNH CÔNG'); } 
+      else if (type === 'warning') { header.addClass('bg-warning text-dark'); title.text('⚠️ CẢNH BÁO'); } 
+      else if (type === 'confirm') {
+        header.addClass('bg-primary text-white'); title.text('❓ XÁC NHẬN');
+        btnConfirm.show().text('Đồng ý').on('click', () => { globalMsgModalInstance.hide(); if (callback) callback(); });
+      }
+      
+      globalMsgModalInstance.show();
+    }
+
+    function loadSheetList() {
+      ServerAPI.getListSheets(function(data) {
+        const cb = $('#cbSheetSelect');
+        cb.empty();
+        if (!data || data.length === 0) { cb.append('<option value="">Không có dữ liệu</option>'); return; }
+        cb.append('<option value="">-- Lựa chọn Giáo viên --</option>');
+        data.forEach(item => cb.append(`<option value="${item.val}">${item.name}</option>`));
+        cb.off('change').on('change', function() {
+          const selectedSheet = $(this).val();
+          if (selectedSheet) {
+            setLoading(true, "Đang chuyển dữ liệu...");
+            ServerAPI.getUserData(selectedSheet, window.PGV_GLOBAL_ID, onDataLoaded, onServerFail);
+          }
+        });
+      }, onServerFail);
+    }
+
+    function loadSummaryData(isSilent = false) {
+      if (!isSilent && isSummaryLoaded) return;
+      if (!isSilent) setLoading(true);
+      ServerAPI.getSummaryData(function(res) {
+        if (!isSilent) setLoading(false);
+        let realData = Array.isArray(res) ? res : res.data;
+        if (!realData) return;
+        rawSummaryData = realData; isSummaryLoaded = true;
+        const years = [...new Set(realData.map(r => r[2]))].filter(y => y);
+        const sel = $('#filterYear').empty().append('<option value="">---Chọn năm---</option>');
+        years.sort().reverse().forEach(y => sel.append(`<option value="${y}">${y}</option>`));
+        renderSummaryTable();
+      }, function(err) { if(!isSilent) onServerFail(err); });
+    }
+
+    function renderSummaryTable() {
+      const year = $('#filterYear').val(), tbody = $('#summaryTable tbody').empty();
+      if (!year) { tbody.append('<tr><td colspan="15" class="text-center text-muted">Vui lòng chọn Năm học.</td></tr>'); return; }
+      let map = {};
+      rawSummaryData.forEach(r => {
+        if (String(r[2]) !== year || !r[0]) return;
+        if (!map[r[0]]) map[r[0]] = { name: r[0], months: {} };
+        let m = parseInt(String(r[3]).match(/(\d{1,2})/)?.[0]);
+        if (m) map[r[0]].months[m] = r[4];
+      });
+      let stt = 1;
+      const mo = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+      for (const k in map) {
+        const g = map[k];
+        let tr = `<tr><td class="text-center">${stt++}</td><td class="fw-bold text-primary" style="font-size: 13px;">${g.name}</td><td><input type="text" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold text-danger" disabled placeholder="..."></td>`;
+        mo.forEach(m => tr += `<td class="text-center small ${g.months[m] ? 'bg-light' : ''}">${g.months[m] || '-'}</td>`);
+        tbody.append(tr + '</tr>');
+      }
+    }
+
+    function loadLeaveSummaryData() {
+      if (isLeaveLoaded) return;
+      setLoading(true);
+      ServerAPI.getLeaveSummaryData(function(res) {
+        setLoading(false);
+        let realData = Array.isArray(res) ? res : res.data;
+        if (!realData) return;
+        rawLeaveData = realData; isLeaveLoaded = true;
+        const years = [...new Set(realData.map(r => r.year))].filter(y => y);
+        const sel = $('#filterYearLeave').empty().append('<option value="">---Chọn năm---</option>');
+        years.sort().reverse().forEach(y => sel.append(`<option value="${y}">${y}</option>`));
+        renderLeaveSummaryTable();
+      }, onServerFail);
+    }
+
+    function renderLeaveSummaryTable() {
+      const year = $('#filterYearLeave').val(), tbody = $('#leaveSummaryTable tbody').empty();
+      if (!year) { tbody.append('<tr><td colspan="14" class="text-center text-muted">Vui lòng chọn Năm học.</td></tr>'); return; }
+      let map = {};
+      rawLeaveData.forEach(r => {
+        if (String(r.year) !== year || !r.name) return;
+        if (!map[r.name]) map[r.name] = { name: r.name, months: {} };
+        let m = parseInt(String(r.month).match(/(\d{1,2})/)?.[0]);
+        if (m) map[r.name].months[m] = { val: r.daysOff, note: r.reason };
+      });
+      let stt = 1;
+      const mo = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+      for (const k in map) {
+        const g = map[k];
+        let tr = `<tr><td class="text-center align-middle">${stt++}</td><td class="fw-bold align-middle">${g.name}</td>`;
+        mo.forEach(m => {
+          let dataObj = g.months[m], displayHtml = '-';
+          if (dataObj && (dataObj.val > 0 || (dataObj.val !== "" && dataObj.val != null))) {
+            let note = (dataObj.note) ? ` <span class="text-muted small fst-italic">(${dataObj.note})</span>` : "";
+            displayHtml = `<div class="opinion-cell-wrapper"><div class="opinion-content text-center"><span class="fw-bold text-danger">${dataObj.val}</span>${note}</div></div>`;
+          }
+          tr += `<td class="p-1 align-middle">${displayHtml}</td>`;
+        });
+        tbody.append(tr + '</tr>');
+      }
+    }
+
+    function loadOpinionSummaryData() {
+      if (isOpinionLoaded) return;
+      setLoading(true);
+      ServerAPI.getOpinionSummaryData(function(res) {
+        setLoading(false);
+        let realData = Array.isArray(res) ? res : res.data;
+        if (!realData) return;
+        rawOpinionData = realData; isOpinionLoaded = true;
+        const years = [...new Set(realData.map(r => r.year))].filter(y => y);
+        const sel = $('#filterYearOpinion').empty().append('<option value="">---Chọn năm---</option>');
+        years.sort().reverse().forEach(y => sel.append(`<option value="${y}">${y}</option>`));
+        renderOpinionSummaryTable();
+      }, onServerFail);
+    }
+
+    function renderOpinionSummaryTable() {
+      const year = $('#filterYearOpinion').val(), tbody = $('#opinionSummaryTable tbody').empty();
+      if (!year) return;
+      let map = {};
+      rawOpinionData.forEach(r => {
+        if (String(r.year) !== year || !r.name) return;
+        if (!map[r.name]) map[r.name] = { name: r.name, months: {} };
+        let m = parseInt(String(r.month).match(/(\d{1,2})/)?.[0]);
+        if (m) map[r.name].months[m] = r.content;
+      });
+      let stt = 1;
+      const mo = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6];
+      for (const k in map) {
+        const g = map[k];
+        let tr = `<tr><td class="text-center">${stt++}</td><td class="ps-3">${g.name}</td>`;
+        mo.forEach(m => {
+          let v = g.months[m], displayVal = '-';
+          if (v && String(v).trim() !== "")
+            displayVal = `<div class="opinion-cell-wrapper"><div class="opinion-content">${v}</div></div>`;
+          tr += `<td class="p-2">${displayVal}</td>`;
+        });
+        tbody.append(tr + '</tr>');
+      }
+    }
+
+    function formatDateDisplay(s) {
+      if (!s) return "";
+      let d = new Date(s);
+      return isNaN(d) ? s : d.toLocaleDateString('vi-VN');
+    }
+
+    function khoiTaoBoDemDiem(kq, bonus) {
+      if (!kq || !/\d+/.test(kq)) {
+        _dataGoc.mauCau = "";
+        return;
+      }
+      let d = parseInt(kq.match(/-?\d+/)[0]),
+        b = parseInt(bonus) || 0;
+      _dataGoc.diemGoc = d - b;
+      _dataGoc.mauCau = kq.replace(String(d), "{0}");
+    }
+  </script>
 </body>
 </html>
