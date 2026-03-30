@@ -69,20 +69,36 @@
     let CURRENT_FILTERED_CV = []; 
     let IS_AUTH_CV = false; 
 
-    function initSearchCV() {
-        if (typeof google === 'undefined' || !google.script) return;
+    // Hàm gọi Server linh hoạt cho mọi nền tảng (AppScript / Github)
+    function runGoogleScript(funcName, args, onSuccess, onFailure) {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+             let runner = google.script.run;
+             if (onSuccess) runner = runner.withSuccessHandler(onSuccess);
+             if (onFailure) runner = runner.withFailureHandler(onFailure);
+             runner[funcName].apply(runner, args || []);
+        } else if (typeof callServer === 'function') {
+             // Dành cho phương án Github Web App
+             callServer(funcName, args || []).then(res => {
+                 if(res && res.success) { if(onSuccess) onSuccess(res.data); }
+                 else { if(onFailure) onFailure(res ? res.error : 'Lỗi không xác định'); }
+             }).catch(err => { if(onFailure) onFailure(err); });
+        } else {
+             if(onFailure) onFailure("Không tìm thấy môi trường thực thi máy chủ.");
+        }
+    }
 
-        google.script.run
-            .withSuccessHandler(data => {
+    function initSearchCV() {
+        runGoogleScript('SCV_getDmCongVan', [], 
+            data => {
                 fillComboFilter('f_LoaiCQ', data.loaiCQ, '-- Loại CQ --');
                 fillComboFilter('f_CoQuan', data.coQuan, '-- CQ Ban Hành --');
                 fillComboFilter('f_LoaiVB', data.loaiVB, '-- Loại VB --');
-            })
-            .withFailureHandler(err => toast("❌ Không tải được danh mục lọc: " + err))
-            .SCV_getDmCongVan();
+            },
+            err => alert("❌ Không tải được danh mục lọc: " + err)
+        );
         
-        google.script.run
-            .withSuccessHandler(res => {
+        runGoogleScript('SCV_getInitialData', [localStorage.getItem('sysAuth') || ""], 
+            res => {
                 IS_AUTH_CV = res.canInput;
                 const st = document.getElementById('status_search_cv');
                 if(st) st.innerHTML = "👤 " + res.sysId; 
@@ -93,9 +109,9 @@
                 
                 const btnTaoSo = document.getElementById('btnTaoSoCV');
                 if (btnTaoSo) btnTaoSo.style.display = IS_AUTH_CV ? 'inline-block' : 'none';
-            })
-            .withFailureHandler(err => console.error("Lỗi auth: ", err))
-            .SCV_getInitialData();
+            },
+            err => console.error("Lỗi auth: ", err)
+        );
     }
 
     function fillComboFilter(id, list, defaultText) {
@@ -131,18 +147,18 @@
                 </td>
             </tr>`;
             
-        google.script.run
-            .withSuccessHandler(data => {
+        runGoogleScript('SCV_getDataCongVan', [conditionString, localStorage.getItem('sysAuth') || ""],
+            data => {
                 data.sort((a, b) => parseDateCV(b.ngayBH) - parseDateCV(a.ngayBH));
                 FULL_DATA_CV = data;
                 filterCongVanLocal(); 
                 const st = document.getElementById('status_search_cv');
                 st.innerHTML = `✅ Tìm thấy: ${data.length} văn bản`;
-            })
-            .withFailureHandler(err => {
+            },
+            err => {
                 tbody.innerHTML = `<tr><td colspan="${colSpanNum}" class="text-center" style="padding:20px; color:red; font-weight:bold; border: 1px solid #ccc !important;">❌ Lỗi kết nối máy chủ: ${err}</td></tr>`;
-            })
-            .SCV_getDataCongVan(conditionString);
+            }
+        );
     }
 
     function filterCongVanLocal() {
@@ -235,33 +251,31 @@
         btn.innerHTML = "⏳ Đang tạo sổ...";
         btn.disabled = true;
 
-        // Lấy thông tin ngày để gửi lên máy chủ
         const tuNgay = document.getElementById('f_TuNgay').value;
         const denNgay = document.getElementById('f_DenNgay').value;
 
+        // Trích xuất và đảm bảo mọi thứ là chuỗi
         const exportData = CURRENT_FILTERED_CV.map((r, i) => [
-            (i + 1).toString(),
-            r.ngayBH || "",
-            r.kyHieu || "",
-            r.trichYeu || "",
-            r.noiNhan || "",
-            r.ghiChu || ""
+            String(i + 1),
+            String(r.ngayBH || ""),
+            String(r.kyHieu || ""),
+            String(r.trichYeu || ""),
+            String(r.noiNhan || ""),
+            String(r.ghiChu || "")
         ]);
 
-        google.script.run
-            .withSuccessHandler(url => {
+        runGoogleScript('SCV_ExportSoCongVan', [exportData, tuNgay, denNgay], 
+            url => {
                 btn.innerHTML = oldText;
                 btn.disabled = false;
-                if(url) {
-                    window.open(url, '_blank');
-                }
-            })
-            .withFailureHandler(err => {
+                if(url) window.open(url, '_blank');
+            },
+            err => {
                 btn.innerHTML = oldText;
                 btn.disabled = false;
                 alert("❌ Lỗi tạo sổ: " + err);
-            })
-            .SCV_ExportSoCongVan(exportData, tuNgay, denNgay); // Truyền thêm biến ngày
+            }
+        );
     }
 
     function transferToEditCongVan(btn, dataEncoded) {
@@ -274,11 +288,11 @@
                  tr.style.transition = 'opacity 0.5s'; 
                  tr.style.opacity = '0';
                  setTimeout(() => tr.remove(), 500);
-                 toast("✅ Đã chuyển dữ liệu sang tab [NHẬP CÔNG VĂN].");
+                 alert("✅ Đã chuyển dữ liệu sang tab [NHẬP CÔNG VĂN].");
              } else {
-                 toast("❌ Lỗi: Không tìm thấy hàm điền dữ liệu.");
+                 alert("❌ Lỗi: Không tìm thấy hàm điền dữ liệu.");
              }
-         } catch(e) { console.error(e); toast("❌ Lỗi đọc dữ liệu!"); }
+         } catch(e) { console.error(e); alert("❌ Lỗi đọc dữ liệu!"); }
     }
 
     function parseDateCV(str) { 
