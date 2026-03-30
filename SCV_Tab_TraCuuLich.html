@@ -122,9 +122,8 @@
             });
             
             fullData = cleanData;
+            // Việc cập nhật tổng số lượng đã được chuyển sang hàm filterLichLocal() để đảm bảo đồng bộ
             filterLichLocal(); 
-            const st = document.getElementById('status_search_lich');
-            if(st) st.innerHTML = `✅ Tìm thấy: ${cleanData.length} lịch công tác`;
         })
         .withFailureHandler(err => {
             tbody.innerHTML = `<tr><td colspan="${colSpanNum}" class="text-center" style="padding:20px; color:red; font-weight:bold; border: 1px solid #ccc !important;">❌ Lỗi tải dữ liệu: ${err}</td></tr>`;
@@ -184,8 +183,14 @@
       // Cập nhật nhãn thống kê số buổi sau khi lọc
       const statEl = document.getElementById('stat_SoBuoi');
       if(statEl) statEl.innerHTML = `Thống kê: ${res.length} buổi`;
+
+      // SỬA LỖI: Cập nhật nhãn trạng thái tổng tìm thấy đồng bộ với dữ liệu thực tế (res.length)
+      const st = document.getElementById('status_search_lich');
+      if(st) st.innerHTML = `✅ Tìm thấy: ${res.length} lịch công tác`;
+
       renderTable(res);
   }
+
   function renderTable(data) {
     const tb = document.getElementById('bodyView'); 
     tb.innerHTML = "";
