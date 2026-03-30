@@ -136,30 +136,43 @@
       const fStr = document.getElementById('dFrom').value; 
       const tStr = document.getElementById('dTo').value;
       const fTxt = document.getElementById('f_ContentLich').value.toLowerCase().trim();
-      
-      // BỔ SUNG: Lấy từ khóa lọc thành phần
       const fName = document.getElementById('f_ThanhPhan').value.toLowerCase().trim();
 
-      const strToDate = (s) => { if(!s) return null; const p = s.split('/');
-      if(p.length < 3) return null; const d = parseInt(p[0]), m = parseInt(p[1]), y = parseInt(p[2]);
-      if (isNaN(d) || isNaN(m) || isNaN(y)) return null; const dateObj = new Date(y, m-1, d); dateObj.setHours(0,0,0,0); return dateObj; };
+      const strToDate = (s) => { 
+          if(!s) return null; 
+          const p = s.split('/');
+          if(p.length < 3) return null; 
+          const d = parseInt(p[0]), m = parseInt(p[1]), y = parseInt(p[2]);
+          if (isNaN(d) || isNaN(m) || isNaN(y)) return null; 
+          const dateObj = new Date(y, m-1, d); 
+          dateObj.setHours(0,0,0,0); 
+          return dateObj; 
+      };
       
       const dFrom = strToDate(fStr); 
       const dTo = strToDate(tStr);
+
+      // Bóc tách từ khóa cho ô tìm kiếm chung (tìm theo từ đại diện)
+      const contentWords = fTxt ? fTxt.split(/\s+/) : [];
 
       const res = fullData.filter(r => {
           if(!r[0]) return false; 
           const dRow = strToDate(r[0]); 
           if(!dRow) return false;
+          
+          // Lọc theo mốc thời gian
           if(dFrom && dRow.getTime() < dFrom.getTime()) return false;
           if(dTo && dRow.getTime() > dTo.getTime()) return false;
           
-          if(fTxt) {
+          // Lọc theo TỪ ĐẠI DIỆN cho ô Tìm kiếm chung
+          // (Dòng dữ liệu phải chứa ĐỒNG THỜI tất cả các từ khóa được nhập)
+          if(contentWords.length > 0) {
               const content = (r[2] + " " + r[3] + " " + r[4] + " " + r[5]).toLowerCase();
-              if(!content.includes(fTxt)) return false;
+              for (let i = 0; i < contentWords.length; i++) {
+                  if(!content.includes(contentWords[i])) return false;
+              }
           }
-          
-          // BỔ SUNG: Xử lý lọc theo tên (cột Thành phần tương ứng r[5])
+       // Lọc theo chuỗi nguyên bản cho ô Tổng hợp theo Thành phần
           if(fName) {
               const thanhPhan = String(r[5] || "").toLowerCase();
               if(!thanhPhan.includes(fName)) return false;
@@ -168,13 +181,11 @@
           return true;
       });
       
-      // BỔ SUNG: Cập nhật nhãn thống kê số buổi sau khi lọc
+      // Cập nhật nhãn thống kê số buổi sau khi lọc
       const statEl = document.getElementById('stat_SoBuoi');
       if(statEl) statEl.innerHTML = `Thống kê: ${res.length} buổi`;
-
       renderTable(res);
   }
-
   function renderTable(data) {
     const tb = document.getElementById('bodyView'); 
     tb.innerHTML = "";
