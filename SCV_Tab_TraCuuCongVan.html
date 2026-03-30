@@ -239,15 +239,15 @@
         const denNgay = document.getElementById('f_DenNgay').value;
 
         const exportData = CURRENT_FILTERED_CV.map((r, i) => [
-            String(i + 1),
-            String(r.ngayBH || ""),
-            String(r.kyHieu || ""),
-            String(r.trichYeu || ""),
-            String(r.noiNhan || ""),
-            String(r.ghiChu || "")
+            (i + 1).toString(),
+            r.ngayBH || "",
+            r.kyHieu || "",
+            r.trichYeu || "",
+            r.noiNhan || "",
+            r.ghiChu || ""
         ]);
 
-        // QUAN TRỌNG: Nén toàn bộ mảng thành chuỗi JSON để truyền an toàn tuyệt đối qua mạng
+        // Nén dữ liệu thành chuỗi an toàn tuyệt đối
         const safeJsonData = JSON.stringify(exportData);
 
         google.script.run
@@ -263,7 +263,7 @@
                 btn.disabled = false;
                 alert("❌ Lỗi tạo sổ: " + err);
             })
-            .SCV_ExportSoCongVan(safeJsonData, tuNgay, denNgay); // Truyền chuỗi thay vì mảng
+            .SCV_ExportSoCongVan(safeJsonData, tuNgay, denNgay); // Truyền chuỗi nén
     }
 
     function transferToEditCongVan(btn, dataEncoded) {
