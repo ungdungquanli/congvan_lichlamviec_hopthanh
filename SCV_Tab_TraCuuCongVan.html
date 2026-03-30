@@ -235,35 +235,52 @@
         btn.innerHTML = "⏳ Đang tạo sổ...";
         btn.disabled = true;
 
-        const tuNgay = document.getElementById('f_TuNgay').value;
-        const denNgay = document.getElementById('f_DenNgay').value;
+        try {
+            const tuNgay = document.getElementById('f_TuNgay').value;
+            const denNgay = document.getElementById('f_DenNgay').value;
 
-        const exportData = CURRENT_FILTERED_CV.map((r, i) => [
-            (i + 1).toString(),
-            r.ngayBH || "",
-            r.kyHieu || "",
-            r.trichYeu || "",
-            r.noiNhan || "",
-            r.ghiChu || ""
-        ]);
+            const exportData = CURRENT_FILTERED_CV.map((r, i) => [
+                (i + 1).toString(),
+                r.ngayBH || "",
+                r.kyHieu || "",
+                r.trichYeu || "",
+                r.noiNhan || "",
+                r.ghiChu || ""
+            ]);
 
-        // Nén dữ liệu thành chuỗi an toàn tuyệt đối
-        const safeJsonData = JSON.stringify(exportData);
+            const safeJsonData = JSON.stringify(exportData);
 
-        google.script.run
-            .withSuccessHandler(url => {
-                btn.innerHTML = oldText;
-                btn.disabled = false;
-                if(url) {
-                    window.open(url, '_blank');
-                }
-            })
-            .withFailureHandler(err => {
-                btn.innerHTML = oldText;
-                btn.disabled = false;
-                alert("❌ Lỗi tạo sổ: " + err);
-            })
-            .SCV_ExportSoCongVan(safeJsonData, tuNgay, denNgay); // Truyền chuỗi nén
+            if (typeof google === 'undefined' || !google.script) {
+                throw new Error("Mất kết nối tới máy chủ Google Apps Script.");
+            }
+
+            google.script.run
+                .withSuccessHandler(res => {
+                    // Phục hồi nút bấm ngay lập tức
+                    btn.innerHTML = oldText;
+                    btn.disabled = false;
+                    
+                    // Phân loại kết quả trả về
+                    if (res && typeof res === 'string' && res.indexOf("LỖI_SERVER:") > -1) {
+                        alert("❌ Từ chối xử lý: " + res.replace("LỖI_SERVER:", ""));
+                    } else if (res) {
+                        window.open(res, '_blank');
+                    } else {
+                        alert("❌ Đã tạo xong nhưng không nhận được Link.");
+                    }
+                })
+                .withFailureHandler(err => {
+                    btn.innerHTML = oldText;
+                    btn.disabled = false;
+                    alert("❌ Lỗi đường truyền mạng: " + err);
+                })
+                .SCV_ExportSoCongVan(safeJsonData, tuNgay, denNgay); // Truyền dữ liệu nén
+
+        } catch(e) {
+            btn.innerHTML = oldText;
+            btn.disabled = false;
+            alert("❌ Lỗi hệ thống: " + e.message);
+        }
     }
 
     function transferToEditCongVan(btn, dataEncoded) {
