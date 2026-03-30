@@ -66,7 +66,7 @@
 
 <script>
     let FULL_DATA_CV = [];
-    let CURRENT_FILTERED_CV = []; // Biến lưu kết quả lọc để xuất sổ
+    let CURRENT_FILTERED_CV = []; 
     let IS_AUTH_CV = false; 
 
     function initSearchCV() {
@@ -235,6 +235,10 @@
         btn.innerHTML = "⏳ Đang tạo sổ...";
         btn.disabled = true;
 
+        // Lấy thông tin ngày để gửi lên máy chủ
+        const tuNgay = document.getElementById('f_TuNgay').value;
+        const denNgay = document.getElementById('f_DenNgay').value;
+
         const exportData = CURRENT_FILTERED_CV.map((r, i) => [
             (i + 1).toString(),
             r.ngayBH || "",
@@ -257,7 +261,7 @@
                 btn.disabled = false;
                 alert("❌ Lỗi tạo sổ: " + err);
             })
-            .SCV_ExportSoCongVan(exportData);
+            .SCV_ExportSoCongVan(exportData, tuNgay, denNgay); // Truyền thêm biến ngày
     }
 
     function transferToEditCongVan(btn, dataEncoded) {
