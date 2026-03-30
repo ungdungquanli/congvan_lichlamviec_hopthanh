@@ -264,7 +264,7 @@
                     } else if (res) {
                         window.open(res, '_blank');
                     } else {
-                        alert("❌ Lỗi: Máy chủ không trả về Link tài liệu.");
+                        alert("❌ Đã tạo xong nhưng không nhận được Link.");
                     }
                 })
                 .withFailureHandler(err => {
@@ -277,13 +277,7 @@
         } catch(e) {
             btn.innerHTML = oldText;
             btn.disabled = false;
-            
-            // Xử lý chính xác thông báo lỗi lệch phiên bản máy chủ
-            if (e.message.includes("is not a function")) {
-                alert("❌ LỖI ĐỒNG BỘ PHIÊN BẢN MÁY CHỦ!\n\nGiao diện chưa nhận diện được mã mới. Thầy vui lòng:\n1. Sang tab Google Script.\n2. Bấm [Deploy] -> [Manage deployments].\n3. Bấm hình cây bút chì (Edit).\n4. Mục Version, CHỌN BẮT BUỘC: [New version] (Phiên bản mới).\n5. Bấm Deploy.\n6. Về trang này bấm F5 và thử lại.");
-            } else {
-                alert("❌ Lỗi cục bộ: " + e.message);
-            }
+            alert("❌ Lỗi: " + e.message);
         }
     }
 
