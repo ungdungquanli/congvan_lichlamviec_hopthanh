@@ -236,6 +236,19 @@
         btn.disabled = true;
 
         try {
+            // Kiểm tra kết nối trước tiên
+            if (typeof google === 'undefined' || !google.script || !google.script.run) {
+                throw new Error("Mất kết nối tới máy chủ Google Apps Script.");
+            }
+
+            // BẮT LỖI TỪ CHỐI PHIÊN BẢN CŨ CỦA GITHUB TRƯỚC KHI GỌI
+            if (typeof google.script.run.SCV_ExportSoCongVan !== 'function') {
+                alert("❌ LỖI CHƯA CẬP NHẬT PHIÊN BẢN ỨNG DỤNG!\n\nHệ thống báo 'is not a function' vì Thầy chỉ ấn nút Lưu ở tệp Code mà chưa tạo Bản Triển Khai mới.\n\n📌 Cách sửa:\n1. Mở trang Google Apps Script.\n2. Bấm [Deploy] (Triển khai) góc trên phải -> Manage deployments.\n3. Ấn biểu tượng cây bút chì (Chỉnh sửa).\n4. Ở mục Version (Phiên bản), CHỌN BẮT BUỘC: [New version] (Phiên bản mới).\n5. Bấm Deploy (Triển khai).\nSau đó quay lại tải lại trang này là tạo được!");
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+                return;
+            }
+
             const tuNgay = document.getElementById('f_TuNgay').value;
             const denNgay = document.getElementById('f_DenNgay').value;
 
@@ -250,17 +263,12 @@
 
             const safeJsonData = JSON.stringify(exportData);
 
-            if (typeof google === 'undefined' || !google.script) {
-                throw new Error("Mất kết nối tới máy chủ Google Apps Script.");
-            }
-
             google.script.run
                 .withSuccessHandler(res => {
                     // Phục hồi nút bấm ngay lập tức
                     btn.innerHTML = oldText;
                     btn.disabled = false;
                     
-                    // Phân loại kết quả trả về
                     if (res && typeof res === 'string' && res.indexOf("LỖI_SERVER:") > -1) {
                         alert("❌ Từ chối xử lý: " + res.replace("LỖI_SERVER:", ""));
                     } else if (res) {
@@ -274,12 +282,12 @@
                     btn.disabled = false;
                     alert("❌ Lỗi đường truyền mạng: " + err);
                 })
-                .SCV_ExportSoCongVan(safeJsonData, tuNgay, denNgay); // Truyền dữ liệu nén
+                .SCV_ExportSoCongVan(safeJsonData, tuNgay, denNgay); // Gửi chuỗi lên Server
 
         } catch(e) {
             btn.innerHTML = oldText;
             btn.disabled = false;
-            alert("❌ Lỗi hệ thống: " + e.message);
+            alert("❌ Lỗi hệ thống nội bộ: " + e.message);
         }
     }
 
