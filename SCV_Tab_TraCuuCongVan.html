@@ -4,10 +4,13 @@
   .highlight-text { background-color: yellow; font-weight: bold; }
 </style>
 
-<div style="margin-bottom: 10px; overflow: hidden; display: flex; justify-content: space-between; align-items: center;">
+<div style="margin-bottom: 10px; overflow: hidden; display: flex; justify-content: space-between; align-items: center; padding: 2px 0;">
   <span id="status_search_cv" style="font-family:'Times New Roman'; font-style:italic; font-weight:bold; font-size:15px; color:#1e3a8a;">
       👋 Mời chọn điều kiện để tìm kiếm...
   </span>
+  <button id="btnTaoSoCV" onclick="taoSoCongVan()" style="display:none; background:#dc2626; color:white; border:none; padding:6px 16px; border-radius:4px; cursor:pointer; font-weight:bold; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background 0.2s;">
+      📑 TẠO SỔ CÔNG VĂN
+  </button>
 </div>
 
 <div class="cv-controls" style="flex-direction: row; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-start; padding: 10px; background:#e0f2fe; border:1px solid #bae6fd;">
@@ -63,6 +66,7 @@
 
 <script>
     let FULL_DATA_CV = [];
+    let CURRENT_FILTERED_CV = []; // Biến lưu kết quả lọc để xuất sổ
     let IS_AUTH_CV = false; 
 
     function initSearchCV() {
@@ -81,11 +85,14 @@
             .withSuccessHandler(res => {
                 IS_AUTH_CV = res.canInput;
                 const st = document.getElementById('status_search_cv');
-                if(st) st.innerHTML = "👤 " + res.sysId; // Đồng bộ định danh với Server
+                if(st) st.innerHTML = "👤 " + res.sysId; 
 
                 const disp = IS_AUTH_CV ? '' : 'none';
                 document.getElementById('colSuaCV').style.display = disp;
                 document.getElementById('thSuaCV').style.display = disp;
+                
+                const btnTaoSo = document.getElementById('btnTaoSoCV');
+                if (btnTaoSo) btnTaoSo.style.display = IS_AUTH_CV ? 'inline-block' : 'none';
             })
             .withFailureHandler(err => console.error("Lỗi auth: ", err))
             .SCV_getInitialData();
@@ -139,7 +146,11 @@
     }
 
     function filterCongVanLocal() {
-        if (!FULL_DATA_CV || FULL_DATA_CV.length === 0) { renderTableCV([]); return; }
+        if (!FULL_DATA_CV || FULL_DATA_CV.length === 0) { 
+            CURRENT_FILTERED_CV = [];
+            renderTableCV([]); 
+            return; 
+        }
 
         const fLoaiCQ = document.getElementById('f_LoaiCQ').value.toLowerCase();
         const fCoQuan = document.getElementById('f_CoQuan').value.toLowerCase();
@@ -165,6 +176,8 @@
             }
             return true;
         });
+        
+        CURRENT_FILTERED_CV = result; 
         renderTableCV(result);
     }
 
@@ -209,6 +222,42 @@
                 <td style="${center} font-size:13px; color:#666;">${r.ghiChu}</td>
             </tr>`;
         });
+    }
+
+    function taoSoCongVan() {
+        if(!CURRENT_FILTERED_CV || CURRENT_FILTERED_CV.length === 0) {
+            alert("⚠️ Không có dữ liệu để tạo sổ! Vui lòng tìm kiếm trước.");
+            return;
+        }
+        
+        const btn = document.getElementById('btnTaoSoCV');
+        const oldText = btn.innerHTML;
+        btn.innerHTML = "⏳ Đang tạo sổ...";
+        btn.disabled = true;
+
+        const exportData = CURRENT_FILTERED_CV.map((r, i) => [
+            (i + 1).toString(),
+            r.ngayBH || "",
+            r.kyHieu || "",
+            r.trichYeu || "",
+            r.noiNhan || "",
+            r.ghiChu || ""
+        ]);
+
+        google.script.run
+            .withSuccessHandler(url => {
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+                if(url) {
+                    window.open(url, '_blank');
+                }
+            })
+            .withFailureHandler(err => {
+                btn.innerHTML = oldText;
+                btn.disabled = false;
+                alert("❌ Lỗi tạo sổ: " + err);
+            })
+            .SCV_ExportSoCongVan(exportData);
     }
 
     function transferToEditCongVan(btn, dataEncoded) {
