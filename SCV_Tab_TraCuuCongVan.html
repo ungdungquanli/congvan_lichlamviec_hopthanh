@@ -29,7 +29,7 @@
     <button onclick="loadDataSearchCV()" style="background:#1e3a8a; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
         🔍 Tìm kiếm
     </button>
-    <button id="btnInSo" onclick="exportSoCongVan()" style="background:#15803d; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+    <button id="btnInSo" onclick="exportSoCongVan()" style="background:#15803d; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: all 0.3s ease;">
         🖨️ In Sổ
     </button>
 </div>
@@ -221,7 +221,7 @@
         });
     }
 
-    // HÀM IN SỔ CÔNG VĂN (Đã cập nhật hộp thoại Alert nổi, khóa trạng thái nút bấm)
+    // HÀM IN SỔ CÔNG VĂN (Bổ sung bẫy lỗi ngầm định và cơ chế chống chặn Pop-up)
     function exportSoCongVan() {
         if (!CURRENT_FILTERED_CV || CURRENT_FILTERED_CV.length === 0) {
             alert("⚠️ Không có dữ liệu văn bản để in sổ!");
@@ -235,14 +235,14 @@
 
         const nutInSo = document.getElementById('btnInSo');
         if (nutInSo) {
-            nutInSo.innerHTML = "⏳ Đang kết xuất...";
+            nutInSo.innerHTML = "⏳ Đang tạo file...";
             nutInSo.disabled = true;
-            nutInSo.style.background = "#6b7280"; // Đổi màu xám để báo hiệu chờ
+            nutInSo.style.background = "#6b7280";
+            // Bỏ dòng onclick cũ để đề phòng xung đột khi đang xử lý
+            nutInSo.onclick = null; 
         }
 
-        // Vẫn gọi toast nhưng nhắc người dùng chờ
-        toast("⏳ Máy chủ đang xử lý tạo file. Quá trình này có thể mất 5-10 giây...");
-
+        // Ép kiểu mảng tĩnh để chống dội ngược dữ liệu rác
         const duLieuLoc = CURRENT_FILTERED_CV.map(item => [
             item.ngayBH ? String(item.ngayBH) : "",
             item.kyHieu ? String(item.kyHieu) : "",
@@ -256,19 +256,31 @@
 
         google.script.run
             .withSuccessHandler(res => {
-                // Nhả khóa nút bấm
-                if (nutInSo) {
-                    nutInSo.innerHTML = "🖨️ In Sổ";
-                    nutInSo.disabled = false;
-                    nutInSo.style.background = "#15803d";
-                }
-
                 if (res.trangThai) {
-                    // Dùng hộp thoại cố định để người dùng tương tác, xuyên thủng việc chặn Pop-up
-                    alert("✅ " + res.thongBao + "\n\nNhấn OK, hệ thống sẽ mở file Sổ Công Văn.");
-                    window.open(res.duongDan, '_blank'); 
+                    // Cải tiến UX: Biến nút "In Sổ" thành nút "Mở File" để người dùng chủ động bấm
+                    // Hành động này sẽ qua mặt 100% các trình chặn Pop-up của trình duyệt
+                    if (nutInSo) {
+                        nutInSo.innerHTML = "🔗 BẤM VÀO ĐÂY ĐỂ MỞ SỔ";
+                        nutInSo.disabled = false;
+                        nutInSo.style.background = "#0284c7"; // Đổi màu xanh lam nổi bật
+                        nutInSo.onclick = function() { 
+                            window.open(res.duongDan, '_blank'); 
+                            // Sau khi bấm thì trả nút về trạng thái cũ
+                            nutInSo.innerHTML = "🖨️ In Sổ";
+                            nutInSo.style.background = "#15803d";
+                            nutInSo.onclick = exportSoCongVan; 
+                        };
+                    }
+                    alert("✅ " + res.thongBao + "\n\nXin vui lòng bấm vào nút [🔗 BẤM VÀO ĐÂY ĐỂ MỞ SỔ] để xem kết quả.");
                 } else {
-                    alert("❌ Lỗi từ máy chủ: " + res.thongBao);
+                    if (nutInSo) {
+                        nutInSo.innerHTML = "🖨️ In Sổ";
+                        nutInSo.disabled = false;
+                        nutInSo.style.background = "#15803d";
+                        nutInSo.onclick = exportSoCongVan;
+                    }
+                    // Báo lỗi chi tiết bắt được từ bẫy lỗi máy chủ
+                    alert("❌ Lỗi cấu trúc: " + res.thongBao);
                 }
             })
             .withFailureHandler(err => {
@@ -276,8 +288,10 @@
                     nutInSo.innerHTML = "🖨️ In Sổ";
                     nutInSo.disabled = false;
                     nutInSo.style.background = "#15803d";
+                    nutInSo.onclick = exportSoCongVan;
                 }
-                alert("❌ Lỗi hệ thống! Vui lòng kiểm tra lại quá trình Deploy Phiên Bản Mới: " + (err.message || err));
+                // Báo lỗi nếu Google từ chối thực thi do thiếu Quyền
+                alert("❌ HỆ THỐNG BỊ TỪ CHỐI THỰC THI (Lỗi ngầm định).\n\nNguyên nhân 99%: Thầy chưa cấp quyền DocumentApp. Vui lòng mở Apps Script để chạy và cấp quyền thủ công.\nChi tiết lỗi: " + (err.message || err));
             })
             .SCV_ExportSoCongVan(duLieuLoc, tuNgay, denNgay);
     }
