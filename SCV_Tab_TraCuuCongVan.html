@@ -29,7 +29,7 @@
     <button onclick="loadDataSearchCV()" style="background:#1e3a8a; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
         🔍 Tìm kiếm
     </button>
-    <button onclick="exportSoCongVan()" style="background:#15803d; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+    <button id="btnInSo" onclick="exportSoCongVan()" style="background:#15803d; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
         🖨️ In Sổ
     </button>
 </div>
@@ -221,21 +221,28 @@
         });
     }
 
-    // HÀM GỌI LỆNH IN SỔ CÔNG VĂN (Đã bổ sung ép kiểu dữ liệu an toàn)
+    // HÀM IN SỔ CÔNG VĂN (Đã cập nhật hộp thoại Alert nổi, khóa trạng thái nút bấm)
     function exportSoCongVan() {
         if (!CURRENT_FILTERED_CV || CURRENT_FILTERED_CV.length === 0) {
-            toast("⚠️ Không có dữ liệu văn bản để in sổ!");
+            alert("⚠️ Không có dữ liệu văn bản để in sổ!");
             return;
         }
         
         if (!IS_AUTH_CV) {
-            toast("⛔ Bạn không có quyền kết xuất Sổ Công Văn!");
+            alert("⛔ Bạn không có quyền kết xuất Sổ Công Văn!");
             return;
         }
 
-        toast("⏳ Đang xử lý kết xuất Sổ Công Văn, hệ thống sẽ tự động mở file khi hoàn tất...");
+        const nutInSo = document.getElementById('btnInSo');
+        if (nutInSo) {
+            nutInSo.innerHTML = "⏳ Đang kết xuất...";
+            nutInSo.disabled = true;
+            nutInSo.style.background = "#6b7280"; // Đổi màu xám để báo hiệu chờ
+        }
 
-        // Xử lý dữ liệu mảng an toàn tuyệt đối (ép kiểu String để tránh lỗi khi gửi qua máy chủ)
+        // Vẫn gọi toast nhưng nhắc người dùng chờ
+        toast("⏳ Máy chủ đang xử lý tạo file. Quá trình này có thể mất 5-10 giây...");
+
         const duLieuLoc = CURRENT_FILTERED_CV.map(item => [
             item.ngayBH ? String(item.ngayBH) : "",
             item.kyHieu ? String(item.kyHieu) : "",
@@ -249,15 +256,28 @@
 
         google.script.run
             .withSuccessHandler(res => {
+                // Nhả khóa nút bấm
+                if (nutInSo) {
+                    nutInSo.innerHTML = "🖨️ In Sổ";
+                    nutInSo.disabled = false;
+                    nutInSo.style.background = "#15803d";
+                }
+
                 if (res.trangThai) {
-                    toast("✅ " + res.thongBao);
+                    // Dùng hộp thoại cố định để người dùng tương tác, xuyên thủng việc chặn Pop-up
+                    alert("✅ " + res.thongBao + "\n\nNhấn OK, hệ thống sẽ mở file Sổ Công Văn.");
                     window.open(res.duongDan, '_blank'); 
                 } else {
-                    toast("❌ Lỗi: " + res.thongBao);
+                    alert("❌ Lỗi từ máy chủ: " + res.thongBao);
                 }
             })
             .withFailureHandler(err => {
-                toast("❌ Lỗi hệ thống: " + err);
+                if (nutInSo) {
+                    nutInSo.innerHTML = "🖨️ In Sổ";
+                    nutInSo.disabled = false;
+                    nutInSo.style.background = "#15803d";
+                }
+                alert("❌ Lỗi hệ thống! Vui lòng kiểm tra lại quá trình Deploy Phiên Bản Mới: " + (err.message || err));
             })
             .SCV_ExportSoCongVan(duLieuLoc, tuNgay, denNgay);
     }
