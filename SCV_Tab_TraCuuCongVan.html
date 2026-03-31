@@ -66,7 +66,7 @@
 
 <script>
     let FULL_DATA_CV = [];
-    let CURRENT_FILTERED_CV = []; // Mảng bổ sung để lưu dữ liệu lưới đang hiển thị phục vụ In
+    let CURRENT_FILTERED_CV = []; 
     let IS_AUTH_CV = false; 
 
     function initSearchCV() {
@@ -174,7 +174,7 @@
             return true;
         });
         
-        CURRENT_FILTERED_CV = result; // Cập nhật mảng hiện hành cho lệnh in
+        CURRENT_FILTERED_CV = result; 
         renderTableCV(result);
     }
 
@@ -221,7 +221,7 @@
         });
     }
 
-    // BỔ SUNG HÀM GỌI LỆNH IN SỔ CÔNG VĂN
+    // HÀM GỌI LỆNH IN SỔ CÔNG VĂN (Đã bổ sung ép kiểu dữ liệu an toàn)
     function exportSoCongVan() {
         if (!CURRENT_FILTERED_CV || CURRENT_FILTERED_CV.length === 0) {
             toast("⚠️ Không có dữ liệu văn bản để in sổ!");
@@ -235,13 +235,13 @@
 
         toast("⏳ Đang xử lý kết xuất Sổ Công Văn, hệ thống sẽ tự động mở file khi hoàn tất...");
 
-        // Trích xuất đúng mảng dữ liệu gửi lên máy chủ
+        // Xử lý dữ liệu mảng an toàn tuyệt đối (ép kiểu String để tránh lỗi khi gửi qua máy chủ)
         const duLieuLoc = CURRENT_FILTERED_CV.map(item => [
-            item.ngayBH || "",
-            item.kyHieu || "",
-            item.trichYeu || "",
-            item.noiNhan || "",
-            item.ghiChu || ""
+            item.ngayBH ? String(item.ngayBH) : "",
+            item.kyHieu ? String(item.kyHieu) : "",
+            item.trichYeu ? String(item.trichYeu) : "",
+            item.noiNhan ? String(item.noiNhan) : "",
+            item.ghiChu ? String(item.ghiChu) : ""
         ]);
 
         const tuNgay = document.getElementById('f_TuNgay').value || "...";
@@ -251,7 +251,7 @@
             .withSuccessHandler(res => {
                 if (res.trangThai) {
                     toast("✅ " + res.thongBao);
-                    window.open(res.duongDan, '_blank'); // Tự động bật thẻ mới trỏ tới Google Docs
+                    window.open(res.duongDan, '_blank'); 
                 } else {
                     toast("❌ Lỗi: " + res.thongBao);
                 }
