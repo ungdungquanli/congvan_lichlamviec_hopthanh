@@ -15,16 +15,16 @@
     <select id="f_CoQuan" class="cv-combo" style="width: 130px;" onchange="loadDataSearchCV()"><option value="">-- CQ Ban Hành --</option></select>
     <select id="f_LoaiVB" class="cv-combo" style="width: 130px;" onchange="loadDataSearchCV()"><option value="">-- Loại VB --</option></select>
     
-    <input type="text" id="f_KyHieu" placeholder="Tìm Ký hiệu..." class="cv-combo" style="width:110px;" onkeydown="checkEnter(event)">
+    <input type="text" id="f_KyHieu" placeholder="Tìm Ký hiệu..." class="cv-combo" style="width:110px;" onkeydown="checkEnter(event)" autocomplete="off">
 
     <div style="display:flex; align-items:center; gap:5px; background:white; padding:3px; border-radius:4px; border:1px solid #ccc;">
        <span style="font-size:12px; font-weight:bold; color:#555;">Ngày:</span>
-       <input type="text" id="f_TuNgay" placeholder="dd/mm/yyyy" style="width:80px; border:none; outline:none; text-align:center; font-size:13px;" oninput="formatDate(this)" onkeydown="checkEnter(event)">
+       <input type="text" id="f_TuNgay" placeholder="dd/mm/yyyy" style="width:80px; border:none; outline:none; text-align:center; font-size:13px;" oninput="formatDate(this)" onkeydown="checkEnter(event)" autocomplete="off">
        <span>-</span>
-       <input type="text" id="f_DenNgay" placeholder="dd/mm/yyyy" style="width:80px; border:none; outline:none; text-align:center; font-size:13px;" oninput="formatDate(this)" onkeydown="checkEnter(event)">
+       <input type="text" id="f_DenNgay" placeholder="dd/mm/yyyy" style="width:80px; border:none; outline:none; text-align:center; font-size:13px;" oninput="formatDate(this)" onkeydown="checkEnter(event)" autocomplete="off">
     </div>
 
-    <input type="text" id="f_TrichYeu" placeholder="🔍 Nhập nội dung trích yếu..." class="cv-combo" style="flex:1; min-width:250px; font-weight:bold;" onkeydown="checkEnter(event)">
+    <input type="text" id="f_TrichYeu" placeholder="🔍 Nhập nội dung trích yếu..." class="cv-combo" style="flex:1; min-width:250px; font-weight:bold;" onkeydown="checkEnter(event)" autocomplete="off">
 
     <button onclick="loadDataSearchCV()" style="background:#1e3a8a; color:white; border:none; padding:8px 20px; border-radius:4px; cursor:pointer; font-weight:bold; white-space:nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
         🔍 Tìm kiếm
