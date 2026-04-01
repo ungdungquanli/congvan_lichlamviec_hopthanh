@@ -48,6 +48,7 @@ function createRunner(onSuccess, onFailure) {
         SCV_getDmCongVan: function() { this._call('SCV_getDmCongVan', []); },
         SCV_saveCongVan: function(a,b) { this._call('SCV_saveCongVan', [a,b]); },
         SCV_getDataCongVan: function(a) { this._call('SCV_getDataCongVan', [a]); },
+        SCV_deleteCongVan: function(a,b) { this._call('SCV_deleteCongVan', [a,b]); }, // ĐÃ BỔ SUNG HÀM XÓA CÔNG VĂN
         SCV_getSubFolders: function(a) { this._call('SCV_getSubFolders', [a]); },
         SCV_createNewFolder: function(a,b) { this._call('SCV_createNewFolder', [a,b]); },
         SCV_uploadMultipleFilesToDrive: function(a,b,c,d,e) { this._call('SCV_uploadMultipleFilesToDrive', [a,b,c,d,e]); },
