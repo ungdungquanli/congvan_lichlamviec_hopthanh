@@ -101,7 +101,65 @@
         document.getElementById('bodyCongVan').appendChild(row);
     }
     
-    function delRowCV(btn) { if(document.querySelectorAll('#bodyCongVan tr').length > 1) btn.closest('tr').remove(); else toast('Không thể xóa dòng cuối cùng!'); }
+    // ĐÃ CẬP NHẬT: Xử lý nút xóa đồng bộ dữ liệu Sheets và file đính kèm
+    function delRowCV(btn) {
+        const row = btn.closest('tr');
+        const tbody = document.getElementById('bodyCongVan');
+        
+        // Trích xuất ID và Link file của dòng thao tác
+        const valIdInput = row.cells[5].querySelector('.val-id');
+        const valLinkInput = row.cells[5].querySelector('.val-link');
+        const id = valIdInput ? valIdInput.value : "";
+        const linkFiles = valLinkInput ? valLinkInput.value : "";
+
+        // Trường hợp 1: Dòng dữ liệu đã được lưu trữ trên hệ thống (có ID)
+        if (id && id.trim() !== "") {
+            if (!confirm("⚠️ LƯU Ý: Thao tác này sẽ XÓA VĨNH VIỄN văn bản và TOÀN BỘ file đính kèm trên hệ thống.\n\nĐồng chí có chắc chắn muốn tiến hành xóa?")) {
+                return;
+            }
+            
+            const oldHtml = btn.innerHTML;
+            btn.innerHTML = "⏳";
+            btn.disabled = true;
+
+            google.script.run
+                .withSuccessHandler(res => {
+                    if (res.success) {
+                        toast(res.message);
+                        if (tbody.querySelectorAll('tr').length > 1) {
+                            row.remove();
+                        } else {
+                            // Reset lại form nếu là dòng duy nhất còn lại
+                            row.querySelectorAll('input, textarea').forEach(e => { e.value = ''; if(e.tagName === 'TEXTAREA') e.style.height = 'auto'; });
+                            const container = row.cells[5].querySelector('div');
+                            container.querySelector('.link-display-area').innerHTML = '';
+                            container.querySelector('.btn-upload-icon').innerHTML = '📎 Đính kèm';
+                            container.querySelector('.btn-upload-icon').style.borderColor = "#ccc";
+                            if(valLinkInput) valLinkInput.value = "";
+                            if(valIdInput) valIdInput.value = "";
+                        }
+                    } else {
+                        toast(res.message);
+                        btn.innerHTML = oldHtml;
+                        btn.disabled = false;
+                    }
+                })
+                .withFailureHandler(err => {
+                    toast("❌ Lỗi kết nối hệ thống: " + err);
+                    btn.innerHTML = oldHtml;
+                    btn.disabled = false;
+                })
+                .SCV_deleteCongVan(id, linkFiles);
+        } 
+        // Trường hợp 2: Dòng dữ liệu đang nhập dở, chưa lưu (chỉ xóa giao diện)
+        else {
+            if (tbody.querySelectorAll('tr').length > 1) {
+                row.remove();
+            } else {
+                toast('Không thể xóa dòng cuối cùng trên giao diện!');
+            }
+        }
+    }
 
     const ID_FOLDER_CONGVAN = '1c8O5Dq5hq5glPo10GNBoP1din-S-Zeq4';
     function openUploadCV(btn) {
