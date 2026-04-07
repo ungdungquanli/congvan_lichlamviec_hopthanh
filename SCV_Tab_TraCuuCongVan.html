@@ -2,6 +2,26 @@
   #tblSearchCV th, #tblSearchCV td { border: 1px solid #ccc !important; }
   #tblSearchCV th { white-space: nowrap; background-color: #1e3a8a; color: white; }
   .highlight-text { background-color: yellow; font-weight: bold; }
+  
+  /* Khung Chat Modal giao tiếp AI */
+  .ai-modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center;
+  }
+  .ai-modal-content {
+      background: #fff; width: 90%; max-width: 600px; border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2); overflow: hidden; display: flex; flex-direction: column;
+  }
+  .ai-modal-header {
+      background: #1e3a8a; color: white; padding: 15px; font-weight: bold;
+      display: flex; justify-content: space-between; align-items: center;
+  }
+  .ai-modal-body { padding: 15px; flex: 1; max-height: 60vh; overflow-y: auto; }
+  .ai-modal-footer { padding: 15px; background: #f3f4f6; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; }
+  .ai-response-box {
+      background: #e0f2fe; padding: 10px; border-radius: 5px; margin-bottom: 10px;
+      border-left: 4px solid #0284c7; font-size: 14px; color: #1e3a8a; min-height: 50px; white-space: pre-wrap;
+  }
 </style>
 
 <div style="margin-bottom: 10px; overflow: hidden; display: flex; justify-content: space-between; align-items: center;">
@@ -61,6 +81,25 @@
     </table>
 </div>
 
+<div id="aiChatModal" class="ai-modal-overlay">
+    <div class="ai-modal-content">
+        <div class="ai-modal-header">
+            <span>🤖 Trợ lý AI Phân tích tài liệu</span>
+            <button onclick="closeChatModal()" style="background:transparent; border:none; color:white; font-size:16px; cursor:pointer;" title="Đóng">✖</button>
+        </div>
+        <div class="ai-modal-body">
+            <div id="aiResponseBox" class="ai-response-box">
+                <em>Xin chào! Hãy đặt câu hỏi về tài liệu, tôi sẽ đọc và tóm tắt thông tin giúp đồng chí.</em>
+            </div>
+            <input type="hidden" id="aiCurrentFileUrl">
+        </div>
+        <div class="ai-modal-footer">
+            <textarea id="aiQueryInput" placeholder="Ví dụ: Tóm tắt nội dung chính của văn bản này?" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px; resize:none; height:40px; font-family:inherit;"></textarea>
+            <button onclick="sendChatToAI()" id="btnSendAI" style="background:#1e3a8a; color:white; border:none; padding:0 20px; border-radius:4px; font-weight:bold; cursor:pointer;">Hỏi AI</button>
+        </div>
+    </div>
+</div>
+
 <script>
     let FULL_DATA_CV = [];
     let IS_AUTH_CV = false; 
@@ -81,7 +120,7 @@
             .withSuccessHandler(res => {
                 IS_AUTH_CV = res.canInput;
                 const st = document.getElementById('status_search_cv');
-                if(st) st.innerHTML = "👤 " + res.sysId; // Đồng bộ định danh với Server
+                if(st) st.innerHTML = "👤 " + res.sysId; 
 
                 const disp = IS_AUTH_CV ? '' : 'none';
                 document.getElementById('colSuaCV').style.display = disp;
@@ -182,8 +221,14 @@
             let linkHtml = "";
             if(r.vanBanUrl && r.vanBanUrl.includes('http')) { 
                 const links = r.vanBanUrl.split(',').map(l => l.trim()).filter(l => l !== "");
-                linkHtml = `<div style="display:flex; flex-wrap:wrap; gap:3px; justify-content:center;">` + 
-                           links.map((url, idx) => `<a href="${url}" target="_blank" style="text-decoration:none; background:#e0f2fe; border:1px solid #bae6fd; padding:2px 5px; border-radius:3px; font-size:12px; font-weight:bold; color:#0369a1;" title="Xem tài liệu ${idx+1}">📎 ${idx+1}</a>`).join('') +
+                // CẬP NHẬT GIAO DIỆN NÚT HỎI AI VÀO TỪNG FILE ĐÍNH KÈM
+                linkHtml = `<div style="display:flex; flex-direction:column; gap:4px; align-items:center;">` + 
+                           links.map((url, idx) => `
+                              <div style="display:flex; gap:4px;">
+                                 <a href="${url}" target="_blank" style="text-decoration:none; background:#e0f2fe; border:1px solid #bae6fd; padding:3px 6px; border-radius:3px; font-size:12px; font-weight:bold; color:#0369a1;" title="Xem tài liệu ${idx+1}">📎 Xem</a>
+                                 <button onclick="openChatModal('${url}')" style="background:#fef08a; border:1px solid #fde047; padding:3px 6px; border-radius:3px; font-size:12px; font-weight:bold; color:#854d0e; cursor:pointer;" title="Hỏi Trợ lý AI về văn bản này">🤖 Hỏi AI</button>
+                              </div>
+                           `).join('') +
                            `</div>`;
             }
             
@@ -221,11 +266,11 @@
                  tr.style.transition = 'opacity 0.5s'; 
                  tr.style.opacity = '0';
                  setTimeout(() => tr.remove(), 500);
-                 toast("✅ Đã chuyển dữ liệu sang tab [NHẬP CÔNG VĂN].");
+                 if(typeof toast === 'function') toast("✅ Đã chuyển dữ liệu sang tab [NHẬP CÔNG VĂN].");
              } else {
-                 toast("❌ Lỗi: Không tìm thấy hàm điền dữ liệu.");
+                 if(typeof toast === 'function') toast("❌ Lỗi: Không tìm thấy hàm điền dữ liệu.");
              }
-         } catch(e) { console.error(e); toast("❌ Lỗi đọc dữ liệu!"); }
+         } catch(e) { console.error(e); if(typeof toast === 'function') toast("❌ Lỗi đọc dữ liệu!"); }
     }
 
     function parseDateCV(str) { 
@@ -245,5 +290,53 @@
         if (v.length > 2) o += '/' + v.substring(2,4); 
         if (v.length > 4) o += '/' + v.substring(4,8);
         elm.value = o; 
+    }
+
+    // ==========================================
+    // CÁC HÀM XỬ LÝ GIAO TIẾP VỚI TRỢ LÝ AI
+    // ==========================================
+    function openChatModal(fileUrl) {
+        document.getElementById('aiChatModal').style.display = 'flex';
+        document.getElementById('aiCurrentFileUrl').value = fileUrl;
+        document.getElementById('aiResponseBox').innerHTML = '<em>Xin chào! Hãy đặt câu hỏi về tài liệu (Ví dụ: Tóm tắt ý chính? Ai là người ký? Hạn nộp là bao giờ?), tôi sẽ đọc và phản hồi giúp đồng chí.</em>';
+        document.getElementById('aiQueryInput').value = '';
+    }
+
+    function closeChatModal() {
+        document.getElementById('aiChatModal').style.display = 'none';
+    }
+
+    function sendChatToAI() {
+        const query = document.getElementById('aiQueryInput').value.trim();
+        const fileUrl = document.getElementById('aiCurrentFileUrl').value;
+        const resBox = document.getElementById('aiResponseBox');
+        const btnSend = document.getElementById('btnSendAI');
+
+        if(!query) {
+            alert("Vui lòng nhập câu hỏi!"); return;
+        }
+
+        // Khóa nút và hiện trạng thái đang tải
+        btnSend.disabled = true;
+        btnSend.innerHTML = "⏳ Đang phân tích...";
+        resBox.innerHTML = `<strong>👤 Bạn:</strong> ${query}<br><br><span style="color:#666;">⏳ AI đang đọc và phân tích tài liệu, xin vui lòng chờ giây lát...</span>`;
+
+        google.script.run
+            .withSuccessHandler(res => {
+                btnSend.disabled = false;
+                btnSend.innerHTML = "Hỏi AI";
+                if(res.success) {
+                    resBox.innerHTML = `<strong>👤 Bạn:</strong> ${query}<br><br><strong>🤖 AI Phản hồi:</strong><br>${res.message}`;
+                    document.getElementById('aiQueryInput').value = ''; // Reset input
+                } else {
+                    resBox.innerHTML = `<strong>👤 Bạn:</strong> ${query}<br><br><span style="color:red;"><strong>⚠️ Lỗi:</strong> ${res.message}</span>`;
+                }
+            })
+            .withFailureHandler(err => {
+                btnSend.disabled = false;
+                btnSend.innerHTML = "Hỏi AI";
+                resBox.innerHTML = `<strong>👤 Bạn:</strong> ${query}<br><br><span style="color:red;"><strong>❌ Lỗi kết nối máy chủ:</strong> ${err}</span>`;
+            })
+            .SCV_chatWithDocument(fileUrl, query);
     }
 </script>
