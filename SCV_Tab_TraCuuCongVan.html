@@ -20,7 +20,7 @@
   .ai-modal-footer { padding: 15px; background: #f3f4f6; border-top: 1px solid #e5e7eb; display: flex; gap: 10px; }
   .ai-response-box {
       background: #e0f2fe; padding: 10px; border-radius: 5px; margin-bottom: 10px;
-      border-left: 4px solid #0284c7; font-size: 14px; color: #1e3a8a; min-height: 50px; white-space: pre-wrap;
+      border-left: 4px solid #0284c7; font-size: 14px; color: #1e3a8a; min-height: 50px; white-space: pre-wrap; line-height: 1.5;
   }
 </style>
 
@@ -221,7 +221,6 @@
             let linkHtml = "";
             if(r.vanBanUrl && r.vanBanUrl.includes('http')) { 
                 const links = r.vanBanUrl.split(',').map(l => l.trim()).filter(l => l !== "");
-                // CẬP NHẬT GIAO DIỆN NÚT HỎI AI VÀO TỪNG FILE ĐÍNH KÈM
                 linkHtml = `<div style="display:flex; flex-direction:column; gap:4px; align-items:center;">` + 
                            links.map((url, idx) => `
                               <div style="display:flex; gap:4px;">
@@ -306,6 +305,26 @@
         document.getElementById('aiChatModal').style.display = 'none';
     }
 
+    // BỘ LỌC ĐỊNH DẠNG: Làm đẹp kết quả trả về từ AI (Loại bỏ ký tự thừa, in đậm, gạch đầu dòng)
+    function formatAIResponse(text) {
+        if (!text) return "";
+        let html = text;
+        
+        // 1. Chuyển đổi **nội dung** thành thẻ in đậm có màu nhấn
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color: #1e3a8a;">$1</strong>');
+        
+        // 2. Chuyển đổi * hoặc - ở đầu dòng thành dấu chấm Bullet có lề
+        html = html.replace(/(^|\n)\s*[\*\-]\s+(.*)/g, '$1<div style="margin-left: 15px; margin-bottom: 5px;">&bull; $2</div>');
+        
+        // 3. Xử lý xuống dòng chuẩn
+        html = html.replace(/\n/g, '<br>');
+        
+        // 4. Dọn dẹp khoảng trắng thừa do thẻ div tạo ra
+        html = html.replace(/<\/div><br>/g, '</div>');
+        
+        return html;
+    }
+
     function sendChatToAI() {
         const query = document.getElementById('aiQueryInput').value.trim();
         const fileUrl = document.getElementById('aiCurrentFileUrl').value;
@@ -326,7 +345,9 @@
                 btnSend.disabled = false;
                 btnSend.innerHTML = "Hỏi AI";
                 if(res.success) {
-                    resBox.innerHTML = `<strong>👤 Bạn:</strong> ${query}<br><br><strong>🤖 AI Phản hồi:</strong><br>${res.message}`;
+                    // Áp dụng bộ lọc định dạng kết quả AI trước khi hiển thị
+                    const formattedResponse = formatAIResponse(res.message);
+                    resBox.innerHTML = `<strong>👤 Bạn:</strong> ${query}<br><br><strong>🤖 AI Phản hồi:</strong><br>${formattedResponse}`;
                     document.getElementById('aiQueryInput').value = ''; // Reset input
                 } else {
                     resBox.innerHTML = `<strong>👤 Bạn:</strong> ${query}<br><br><span style="color:red;"><strong>⚠️ Lỗi:</strong> ${res.message}</span>`;
