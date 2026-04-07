@@ -2,7 +2,7 @@
  * INTERNAL API BRIDGE - TRƯỜNG TH&THCS HỢP THÀNH
  * Mục đích: Cầu nối giao tiếp (Fetch API) giữa giao diện Web App và Google Apps Script.
  * Hệ thống quản trị công văn và lịch công tác nội bộ.
- * Phiên bản: An toàn hóa định danh V3
+ * Phiên bản: An toàn hóa định danh V3 & Tích hợp AI
  */
 
 // THẦY HÃY THAY ĐƯỜNG LINK DƯỚI ĐÂY BẰNG LINK WEB APP (đuôi /exec) CỦA THẦY:
@@ -48,11 +48,12 @@ function createRunner(onSuccess, onFailure) {
         SCV_getDmCongVan: function() { this._call('SCV_getDmCongVan', []); },
         SCV_saveCongVan: function(a,b) { this._call('SCV_saveCongVan', [a,b]); },
         SCV_getDataCongVan: function(a) { this._call('SCV_getDataCongVan', [a]); },
-        SCV_deleteCongVan: function(a,b) { this._call('SCV_deleteCongVan', [a,b]); }, // ĐÃ BỔ SUNG HÀM XÓA CÔNG VĂN
         SCV_getSubFolders: function(a) { this._call('SCV_getSubFolders', [a]); },
         SCV_createNewFolder: function(a,b) { this._call('SCV_createNewFolder', [a,b]); },
         SCV_uploadMultipleFilesToDrive: function(a,b,c,d,e) { this._call('SCV_uploadMultipleFilesToDrive', [a,b,c,d,e]); },
-        SCV_uploadFolderEvidence: function(a,b,c,d,e) { this._call('SCV_uploadFolderEvidence', [a,b,c,d,e]); }
+        SCV_uploadFolderEvidence: function(a,b,c,d,e) { this._call('SCV_uploadFolderEvidence', [a,b,c,d,e]); },
+        // KẾT NỐI MỚI CHUYÊN TRÁCH GIAO TIẾP VỚI TRỢ LÝ AI
+        SCV_chatWithDocument: function(a,b) { this._call('SCV_chatWithDocument', [a,b]); }
     };
 }
 
