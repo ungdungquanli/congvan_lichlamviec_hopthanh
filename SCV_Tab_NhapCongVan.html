@@ -188,13 +188,12 @@
         const query = `Đọc nội dung TẤT CẢ các văn bản hành chính được cung cấp và trích xuất thông tin.
 YÊU CẦU BẮT BUỘC: 
 1. TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON PHẲNG. Tuyệt đối không trả về Mảng (Array) hay đối tượng lồng nhau.
-2. GỘP DỮ LIỆU: NẾU CÓ NHIỀU TÀI LIỆU, bắt buộc phải nối thông tin của tất cả các file vào chung một từ khóa (key), ngăn cách nhau bởi dấu chấm phẩy (;) và một lần xuống dòng.
-3. Các khóa (keys) trong JSON bắt buộc phải y hệt như sau:
+2. Các khóa (keys) trong JSON bắt buộc phải y hệt như sau:
 {
-  "ngay_bh": "Gộp Ngày tháng ban hành văn bản (BẮT BUỘC định dạng dd/MM/yyyy).",
-  "ky_hieu": "Gộp Ký hiệu các văn bản.",
-  "trich_yeu": "Gộp Nội dung chính hoặc tên của văn bản.",
-  "noi_ban_hanh": "Gộp Tên cơ quan ban hành (Nơi ban hành)."
+  "ngay_bh": "Ngày tháng ban hành văn bản (BẮT BUỘC định dạng dd/MM/yyyy).",
+  "ky_hieu": "Chỉ lấy số và ký hiệu viết tắt của văn bản.",
+  "trich_yeu": "Nội dung chính hoặc tên của văn bản.",
+  "noi_ban_hanh": "Tên cơ quan ban hành (Nơi ban hành)."
 }`;
 
         google.script.run.withSuccessHandler(function(res) {
@@ -206,11 +205,11 @@ YÊU CẦU BẮT BUỘC:
                     let rawData = JSON.parse(res.message);
                     let aiData = {};
 
-                    // Gộp dữ liệu bằng dấu chấm phẩy và xuống dòng
+                    // Gộp dữ liệu an toàn bằng 1 lần xuống dòng
                     if (Array.isArray(rawData)) {
                         rawData.forEach(item => {
                             for (let k in item) {
-                                if (item[k]) aiData[k] = aiData[k] ? (aiData[k] + ";\n" + item[k]) : item[k];
+                                if (item[k]) aiData[k] = aiData[k] ? (aiData[k] + "\n" + item[k]) : item[k];
                             }
                         });
                     } else if (typeof rawData === 'object' && rawData !== null) {
@@ -218,7 +217,7 @@ YÊU CẦU BẮT BUỘC:
                             for (let fKey in rawData) {
                                 if (typeof rawData[fKey] === 'object') {
                                     for (let k in rawData[fKey]) {
-                                        if (rawData[fKey][k]) aiData[k] = aiData[k] ? (aiData[k] + ";\n" + rawData[fKey][k]) : rawData[fKey][k];
+                                        if (rawData[fKey][k]) aiData[k] = aiData[k] ? (aiData[k] + "\n" + rawData[fKey][k]) : rawData[fKey][k];
                                     }
                                 }
                             }
@@ -227,16 +226,31 @@ YÊU CẦU BẮT BUỘC:
                         }
                     }
 
+                    // --- BỘ LỌC ĐỊNH DẠNG CHUYÊN SÂU ---
+                    // 1. Hàm định dạng chung: cắt, dọn dẹp và nối bằng ';\n'
+                    const formatMultiLine = (text) => {
+                        if (!text) return "";
+                        return String(text).split('\n')
+                            .map(t => t.trim().replace(/;$/, '')) // Xóa dấu chấm phẩy thừa ở cuối nếu có
+                            .filter(t => t !== "")
+                            .join(';\n');
+                    };
+
+                    // 2. Hàm định dạng riêng cho Trích yếu: Ép buộc thêm gạch đầu dòng '-'
+                    const formatBulletList = (text) => {
+                        if (!text) return "";
+                        return String(text).split('\n')
+                            .map(t => t.trim().replace(/^[-+*]\s*/, '').replace(/;$/, '')) // Dọn sạch gạch/sao/cộng ở đầu và chấm phẩy ở cuối
+                            .filter(t => t !== "")
+                            .map(t => "- " + t) // Ép cứng dấu gạch ngang chuẩn
+                            .join(';\n');
+                    };
+
                     const inputs = tr.querySelectorAll('.cell-input');
-                    if (aiData.ngay_bh) inputs[0].value = aiData.ngay_bh;
-                    if (aiData.ky_hieu) inputs[1].value = aiData.ky_hieu;
-                    if (aiData.trich_yeu) {
-    inputs[2].value = aiData.trich_yeu
-        .split(';\n') // Tách các ý dựa vào dấu chấm phẩy và xuống dòng
-        .map(y => "- " + y.replace(/^[-+*]\s*/, '').trim()) // Thêm dấu "-" và tự động xóa dấu -, +, * nếu AI đã lỡ sinh ra trước đó
-        .join('\n'); // Ghép lại bằng lệnh xuống dòng
-}
-                    if (aiData.noi_ban_hanh) inputs[3].value = aiData.noi_ban_hanh;
+                    if (aiData.ngay_bh) inputs[0].value = formatMultiLine(aiData.ngay_bh);
+                    if (aiData.ky_hieu) inputs[1].value = formatMultiLine(aiData.ky_hieu);
+                    if (aiData.trich_yeu) inputs[2].value = formatBulletList(aiData.trich_yeu);
+                    if (aiData.noi_ban_hanh) inputs[3].value = formatMultiLine(aiData.noi_ban_hanh);
                     
                     inputs.forEach(t => { if (t.tagName === 'TEXTAREA') autoResize(t); });
                     toast("✨ AI đã gộp và điền thông tin Công văn thành công!");
@@ -272,7 +286,6 @@ YÊU CẦU BẮT BUỘC:
 
             for (let i = 0; i < rows.length; i++) {
                 const r = rows[i];
-                // Cập nhật lấy dữ liệu từ textarea
                 const ngay = r.cells[1].querySelector('.cell-input').value; 
                 const kyhieu = r.cells[2].querySelector('.cell-input').value; 
                 const trichyeu = r.cells[3].querySelector('.cell-input').value;
@@ -325,8 +338,8 @@ YÊU CẦU BẮT BUỘC:
     function highlightError(elm) { elm.style.backgroundColor = "#ffe4e6"; elm.style.border = "1px solid red";
       setTimeout(() => { elm.style.backgroundColor = "white"; elm.style.border = "1px solid #ccc"; }, 2000);
     }
+    
     function formatDate(elm) { 
-      // Đã bảo vệ: Nếu là dữ liệu gộp của AI (có chứa ;) thì không format đè để tránh hỏng dữ liệu
       if(elm.value.includes(';') || elm.value.includes('\n')) return; 
       let v = elm.value.replace(/\D/g,''); 
       if (v.length > 8) v = v.substring(0,8);
