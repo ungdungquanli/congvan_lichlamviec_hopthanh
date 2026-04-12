@@ -230,7 +230,12 @@ YÊU CẦU BẮT BUỘC:
                     const inputs = tr.querySelectorAll('.cell-input');
                     if (aiData.ngay_bh) inputs[0].value = aiData.ngay_bh;
                     if (aiData.ky_hieu) inputs[1].value = aiData.ky_hieu;
-                    if (aiData.trich_yeu) inputs[2].value = aiData.trich_yeu;
+                    if (aiData.trich_yeu) {
+    inputs[2].value = aiData.trich_yeu
+        .split(';\n') // Tách các ý dựa vào dấu chấm phẩy và xuống dòng
+        .map(y => "- " + y.replace(/^[-+*]\s*/, '').trim()) // Thêm dấu "-" và tự động xóa dấu -, +, * nếu AI đã lỡ sinh ra trước đó
+        .join('\n'); // Ghép lại bằng lệnh xuống dòng
+}
                     if (aiData.noi_ban_hanh) inputs[3].value = aiData.noi_ban_hanh;
                     
                     inputs.forEach(t => { if (t.tagName === 'TEXTAREA') autoResize(t); });
