@@ -68,8 +68,7 @@
   function autoResize(elm) { elm.style.height = 'auto'; elm.style.height = elm.scrollHeight + 'px'; }
   
   function formatDate(elm) { 
-    // Tab Lịch sử dụng định dạng 1 dòng, nên vẫn lọc số để chuẩn hóa dd/mm/yyyy
-    if(elm.value.includes(';') || elm.value.includes('\n')) return; 
+    // Trả lại hàm định dạng ngày chuẩn
     let v = elm.value.replace(/\D/g,''); 
     if (v.length > 8) v = v.substring(0,8); 
     let o = ""; 
@@ -90,7 +89,7 @@
   }
 
   // ==========================================================
-  // KHỐI XỬ LÝ TRỢ LÝ AI: TỔNG HỢP 1 SỰ KIỆN DUY NHẤT (TAB LỊCH)
+  // KHỐI XỬ LÝ TRỢ LÝ AI: TÌM VĂN BẢN CHÍNH (LỊCH CÔNG TÁC)
   // ==========================================================
   function extractAILichInfo(btn) {
       const tr = btn.closest('tr');
@@ -106,19 +105,20 @@
       btn.innerHTML = "⏳ Đang xử lý...";
       btn.disabled = true;
 
-      // PROMPT MỚI: Yêu cầu AI chắt lọc và tổng hợp thành 1 lịch duy nhất, 1 dòng liền mạch
-      const query = `Đọc nội dung TẤT CẢ các văn bản được cung cấp và tổng hợp thành MỘT sự kiện lịch công tác DUY NHẤT.
+      // ÉP KHUÔN LỆNH MỚI: Chỉ lấy 1 văn bản chính
+      const query = `Đọc nội dung các tài liệu được đính kèm.
 YÊU CẦU BẮT BUỘC: 
-1. TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON PHẲNG. Không trả về Mảng (Array).
-2. TỔNG HỢP DỮ LIỆU: Dù có nhiều tài liệu đính kèm, hãy chắt lọc và tổng hợp thành 1 lịch trình hợp nhất (chỉ 1 dòng, KHÔNG phân tách xuống dòng).
-3. Các khóa (keys) bắt buộc phải y hệt như sau:
+1. NẾU CÓ NHIỀU FILE, hãy phân tích và XÁC ĐỊNH DUY NHẤT 01 VĂN BẢN CHÍNH chứa lịch công tác/sự kiện. Các file khác coi như tài liệu tham khảo, KHÔNG trích xuất.
+2. Bỏ qua các file không đúng định dạng hoặc không rõ nội dung.
+3. TUYỆT ĐỐI KHÔNG GỘP thông tin sự kiện của nhiều file.
+4. TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON PHẲNG với các khóa sau:
 {
-  "ngay": "Ngày tổ chức sự kiện (BẮT BUỘC định dạng chuẩn dd/MM/yyyy).",
-  "gio": "Giờ tổ chức sự kiện (VD: 08:00 hoặc 14:00).",
-  "noidung": "Nội dung công việc (Thường là phần trích yếu ở đầu văn bản. Viết thành 1 câu hoặc 1 đoạn liền mạch, không gạch đầu dòng).",
-  "chutri": "Người hoặc cơ quan chủ trì.",
+  "ngay": "Ngày tổ chức sự kiện của VĂN BẢN CHÍNH (BẮT BUỘC định dạng dd/MM/yyyy).",
+  "gio": "Giờ tổ chức (nếu có).",
+  "noidung": "Nội dung sự kiện hoặc phần trích yếu của VĂN BẢN CHÍNH.",
+  "chutri": "Cơ quan/người chủ trì VĂN BẢN CHÍNH.",
   "diadiem": "Địa điểm tổ chức.",
-  "thanhphan": "Thành phần được mời hoặc tham gia."
+  "thanhphan": "Thành phần tham gia."
 }`;
 
       google.script.run.withSuccessHandler(function(res) {
@@ -127,33 +127,15 @@ YÊU CẦU BẮT BUỘC:
           
           if (res && res.success) {
               try {
-                  let rawData = JSON.parse(res.message);
-                  let aiData = {};
+                  let aiData = JSON.parse(res.message);
 
-                  // Kỹ thuật ép phẳng: Nếu AI lỡ sinh ra mảng, ta gom lại trên cùng 1 dòng cách nhau bằng dấu phẩy/chấm phẩy (KHÔNG XUỐNG DÒNG)
-                  if (Array.isArray(rawData)) {
-                      rawData.forEach(item => {
-                          for (let k in item) {
-                              if (item[k]) aiData[k] = aiData[k] ? (aiData[k] + "; " + item[k]) : item[k];
-                          }
-                      });
-                  } else if (typeof rawData === 'object' && rawData !== null) {
-                      if (!rawData.ngay && !rawData.noidung && Object.keys(rawData).length > 0) {
-                          for (let fKey in rawData) {
-                              if (typeof rawData[fKey] === 'object') {
-                                  for (let k in rawData[fKey]) {
-                                      if (rawData[fKey][k]) aiData[k] = aiData[k] ? (aiData[k] + "; " + rawData[fKey][k]) : rawData[fKey][k];
-                                  }
-                              }
-                          }
-                      } else {
-                          aiData = rawData; 
-                      }
+                  // Nếu AI trả về mảng, lấy đối tượng đầu tiên (văn bản chính)
+                  if (Array.isArray(aiData) && aiData.length > 0) {
+                      aiData = aiData[0];
                   }
 
                   const inputs = tr.querySelectorAll('textarea');
                   
-                  // Đẩy dữ liệu vào ô, đã sửa biến aiData.noidung theo chuẩn của Lịch
                   if (aiData.ngay) inputs[0].value = aiData.ngay;
                   if (aiData.gio) inputs[1].value = aiData.gio;
                   if (aiData.noidung) inputs[2].value = aiData.noidung; 
@@ -162,7 +144,7 @@ YÊU CẦU BẮT BUỘC:
                   if (aiData.thanhphan) inputs[5].value = aiData.thanhphan;
                   
                   inputs.forEach(t => autoResize(t));
-                  toast("✨ AI đã tổng hợp sự kiện Lịch công tác thành công!");
+                  toast("✨ AI đã phân tích sự kiện chính thành công!");
               } catch (e) {
                   toast("⚠️ Lỗi trích xuất cấu trúc dữ liệu. Vui lòng thử lại!");
               }
