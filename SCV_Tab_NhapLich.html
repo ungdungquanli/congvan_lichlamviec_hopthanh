@@ -152,7 +152,12 @@ YÊU CẦU BẮT BUỘC:
                   
                   if (aiData.ngay) inputs[0].value = aiData.ngay;
                   if (aiData.gio) inputs[1].value = aiData.gio;
-                  if (aiData.noidung) inputs[2].value = aiData.noidung;
+                  if (aiData.trich_yeu) {
+    inputs[2].value = aiData.trich_yeu
+        .split(';\n') // Tách các ý dựa vào dấu chấm phẩy và xuống dòng
+        .map(y => "- " + y.replace(/^[-+*]\s*/, '').trim()) // Thêm dấu "-" và tự động xóa dấu -, +, * nếu AI đã lỡ sinh ra trước đó
+        .join('\n'); // Ghép lại bằng lệnh xuống dòng
+}
                   if (aiData.chutri) inputs[3].value = aiData.chutri;
                   if (aiData.diadiem) inputs[4].value = aiData.diadiem;
                   if (aiData.thanhphan) inputs[5].value = aiData.thanhphan;
