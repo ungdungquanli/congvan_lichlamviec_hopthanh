@@ -3,6 +3,8 @@
   .btn-upload-icon:hover { background: #e2e8f0; border-color: #94a3b8; }
   .btn-view-icon { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; padding: 4px 6px; }
   .btn-view-icon:hover { background: #bfdbfe; }
+  .btn-ai-icon { background: #fef08a; border-color: #fde047; color: #854d0e; }
+  .btn-ai-icon:hover { background: #fde047; border-color: #eab308; }
 </style>
 
 <div style="margin-bottom: 10px; overflow: hidden; display: flex; justify-content: space-between; align-items: center;">
@@ -16,7 +18,7 @@
     <thead>
       <tr>
         <th style="width:40px">Xóa</th>
-        <th style="width:110px">Thời gian<br>(dd/mm/yyyy)</th> <th style="width:70px">Giờ</th> <th>Nội dung công việc <span style="color:red">*</span></th> <th style="width:130px">Chủ trì</th> <th style="width:200px">Địa điểm</th> <th style="width:150px">Thành phần</th> <th style="width:130px">File</th> </tr>
+        <th style="width:110px">Thời gian<br>(dd/mm/yyyy)</th> <th style="width:70px">Giờ</th> <th>Nội dung công việc <span style="color:red">*</span></th> <th style="width:130px">Chủ trì</th> <th style="width:200px">Địa điểm</th> <th style="width:150px">Thành phần</th> <th style="width:130px">File & AI</th> </tr>
     </thead>
     <tbody id="bodyLich">
        <tr class="input-row">
@@ -31,7 +33,10 @@
          <td style="vertical-align: middle; padding: 2px;">
             <div style="display: flex; flex-direction:column; align-items: center; justify-content: center; gap: 3px; width: 100%;">
                 <div class="link-display-area" style="display:flex; flex-wrap:wrap; gap:3px; justify-content:center;"></div>
-                <button type="button" onclick="openUploadLich(this)" class="btn-icon btn-upload-icon" title="Đính kèm file" style="opacity:1; pointer-events:auto; margin-top:2px;">📎 Đính kèm</button>
+                <div style="display: flex; gap: 3px; margin-top:2px;">
+                    <button type="button" onclick="openUploadLich(this)" class="btn-icon btn-upload-icon" title="Đính kèm file" style="opacity:1; pointer-events:auto;">📎 Đính kèm</button>
+                    <button type="button" onclick="extractAILichInfo(this)" class="btn-icon btn-ai-icon" title="Sử dụng AI đọc nội dung và điền lịch">✨ AI</button>
+                </div>
                 <input type="hidden" class="val-link url-holder">
                 <input type="hidden" class="val-id">
             </div>
@@ -68,18 +73,78 @@
     if (v.length > 4) o += '/' + v.substring(4,8); elm.value = o; }
 
   const ID_FOLDER_LICH = '1hXXJWftw5Z9bFvS686ezV41nHIb_4-n8';
+  
   function openUploadLich(btn) {
        const tr = btn.closest('tr');
-       const inputs = tr.querySelectorAll('textarea');
-       if (inputs[2].value.trim() === "") { 
-           toast("⚠️ Nhập nội dung công việc trước khi đính kèm!");
-           inputs[2].focus(); return; 
-       }
-       const container = btn.parentElement;
+       // Đã loại bỏ ràng buộc nhập nội dung thủ công để nhường nhiệm vụ cho AI
+       const container = btn.closest('td').querySelector('div');
        const linkCu = container.querySelector('.val-link').value || "";
        if(typeof SCV_OpenUploadModal === 'function') { 
            SCV_OpenUploadModal(btn, linkCu, ID_FOLDER_LICH);
        } else { alert("Lỗi: Module upload chưa tải!"); }
+  }
+
+  // ==========================================================
+  // KHỐI XỬ LÝ TRỢ LÝ AI (TỰ ĐỘNG ĐỌC VÀ ĐIỀN THÔNG TIN LỊCH)
+  // ==========================================================
+  function extractAILichInfo(btn) {
+      const tr = btn.closest('tr');
+      const container = btn.closest('td').querySelector('div');
+      const linkStr = container.querySelector('.val-link').value;
+      
+      if (!linkStr || linkStr.trim() === "") {
+          toast("⚠️ Vui lòng đính kèm tài liệu (PDF/Word đã chuyển PDF/Ảnh) trước khi sử dụng AI!");
+          return;
+      }
+      
+      const firstUrl = linkStr.split(',')[0].trim();
+      const originalHtml = btn.innerHTML;
+      btn.innerHTML = "⏳ Đang xử lý...";
+      btn.disabled = true;
+
+      const query = `Đọc nội dung văn bản này và trích xuất các thông tin phục vụ việc lập lịch công tác. 
+YÊU CẦU BẮT BUỘC: 
+1. TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON. Không giải thích thêm.
+2. Các khóa (keys) trong JSON bắt buộc phải là:
+{
+  "ngay": "Ngày tổ chức định dạng dd/MM/yyyy (ví dụ: 15/08/2026). Nếu không có hãy để chuỗi rỗng.",
+  "gio": "Giờ tổ chức định dạng HH:mm (ví dụ: 08:00 hoặc 14:30). Nếu không có hãy để chuỗi rỗng.",
+  "noidung": "Tóm tắt ngắn gọn nội dung cuộc họp hoặc tập huấn.",
+  "chutri": "Người hoặc cơ quan chủ trì.",
+  "diadiem": "Địa điểm tổ chức sự kiện.",
+  "thanhphan": "Thành phần được mời hoặc tham gia."
+}`;
+
+      // Sử dụng hàm gọi mới chuyên biệt để không ảnh hưởng luồng hỏi đáp công văn
+      google.script.run.withSuccessHandler(function(res) {
+          btn.innerHTML = originalHtml;
+          btn.disabled = false;
+          
+          if (res && res.success) {
+              try {
+                  let aiData = JSON.parse(res.message);
+                  const inputs = tr.querySelectorAll('textarea');
+                  
+                  if (aiData.ngay) inputs[0].value = aiData.ngay;
+                  if (aiData.gio) inputs[1].value = aiData.gio;
+                  if (aiData.noidung) inputs[2].value = aiData.noidung;
+                  if (aiData.chutri) inputs[3].value = aiData.chutri;
+                  if (aiData.diadiem) inputs[4].value = aiData.diadiem;
+                  if (aiData.thanhphan) inputs[5].value = aiData.thanhphan;
+                  
+                  inputs.forEach(t => autoResize(t));
+                  toast("✨ AI đã phân tích và điền thông tin thành công!");
+              } catch (e) {
+                  toast("⚠️ AI trả về dữ liệu chưa chuẩn định dạng. Vui lòng thử lại!");
+              }
+          } else {
+              toast("❌ Lỗi AI: " + (res ? res.message : "Lỗi không xác định"));
+          }
+      }).withFailureHandler(function(err) {
+          btn.innerHTML = originalHtml;
+          btn.disabled = false;
+          toast("❌ Lỗi kết nối Google Script: " + err.message);
+      }).SCV_extractLichFromDocument(firstUrl, query, "");
   }
 
   function handleSaveLich() {
@@ -98,7 +163,7 @@
       }
     });
     
-    if (data.length === 0) return toast("⚠️ Nhập ít nhất một nội dung!");
+    if (data.length === 0) return toast("⚠️ Nhập ít nhất một nội dung công việc để lưu!");
     
     const btn = document.querySelector('.btn-save');
     btn.disabled = true;
@@ -113,11 +178,13 @@
          while(tbody.rows.length > 1) tbody.deleteRow(1);
          const r = tbody.rows[0];
          r.querySelectorAll('textarea').forEach(t => { t.value = ""; t.style.height = 'auto'; });
-         r.querySelector('.btn-upload-icon').innerHTML = '📎 Đính kèm';
-         r.querySelector('.btn-upload-icon').style.borderColor = "#ccc";
-         r.querySelector('.link-display-area').innerHTML = '';
-         r.querySelector('.val-link').value = "";
-         r.querySelector('.val-id').value = "";
+         
+         const container = r.cells[7].querySelector('div');
+         container.querySelector('.btn-upload-icon').innerHTML = '📎 Đính kèm';
+         container.querySelector('.btn-upload-icon').style.borderColor = "#ccc";
+         container.querySelector('.link-display-area').innerHTML = '';
+         container.querySelector('.val-link').value = "";
+         container.querySelector('.val-id').value = "";
       } else {
          toast(res);
       }
