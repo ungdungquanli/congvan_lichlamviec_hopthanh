@@ -163,7 +163,6 @@
     const ID_FOLDER_CONGVAN = '1c8O5Dq5hq5glPo10GNBoP1din-S-Zeq4';
     
     function openUploadCV(btn) {
-       // Đã loại bỏ ràng buộc nhập nội dung thủ công để AI tự phân tích
        const container = btn.parentElement;
        const linkCu = container.querySelector('.val-link').value || "";
        if(typeof SCV_OpenUploadModal === 'function') {
@@ -184,14 +183,13 @@
             return;
         }
         
-        const firstUrl = linkStr.split(',')[0].trim();
         const originalHtml = btn.innerHTML;
         btn.innerHTML = "⏳ Đang xử lý...";
         btn.disabled = true;
 
         const query = `Đọc nội dung văn bản hành chính này và trích xuất các thông tin. 
 YÊU CẦU BẮT BUỘC: 
-1. TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON. Không giải thích thêm.
+1. TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON. Không giải thích thêm. Nếu có nhiều tài liệu, hãy tổng hợp thông tin quan trọng nhất.
 2. Các khóa (keys) trong JSON bắt buộc phải là:
 {
   "ngay_bh": "Ngày tháng năm ban hành văn bản định dạng dd/MM/yyyy (ví dụ: 15/08/2026). Nếu không có để chuỗi rỗng.",
@@ -200,6 +198,7 @@ YÊU CẦU BẮT BUỘC:
   "noi_ban_hanh": "Tên cơ quan ban hành văn bản (Nơi ban hành)."
 }`;
 
+        // Đã thay đổi: Truyền toàn bộ biến linkStr thay vì chỉ lấy link đầu tiên
         google.script.run.withSuccessHandler(function(res) {
             btn.innerHTML = originalHtml;
             btn.disabled = false;
@@ -229,7 +228,7 @@ YÊU CẦU BẮT BUỘC:
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             toast("❌ Lỗi kết nối Google Script: " + err.message);
-        }).SCV_extractCongVanFromDocument(firstUrl, query, "");
+        }).SCV_extractCongVanFromDocument(linkStr, query, ""); 
     }
 
     function doSaveCongVan() {
