@@ -52,8 +52,9 @@ function createRunner(onSuccess, onFailure) {
         SCV_createNewFolder: function(a,b) { this._call('SCV_createNewFolder', [a,b]); },
         SCV_uploadMultipleFilesToDrive: function(a,b,c,d,e) { this._call('SCV_uploadMultipleFilesToDrive', [a,b,c,d,e]); },
         SCV_uploadFolderEvidence: function(a,b,c,d,e) { this._call('SCV_uploadFolderEvidence', [a,b,c,d,e]); },
-        // KẾT NỐI MỚI CHUYÊN TRÁCH GIAO TIẾP VỚI TRỢ LÝ AI
-        SCV_chatWithDocument: function(a,b) { this._call('SCV_chatWithDocument', [a,b]); }
+        // KẾT NỐI CHUYÊN TRÁCH GIAO TIẾP VỚI TRỢ LÝ AI
+        SCV_chatWithDocument: function(a,b) { this._call('SCV_chatWithDocument', [a,b]); },
+        SCV_extractLichFromDocument: function(a,b) { this._call('SCV_extractLichFromDocument', [a,b]); }
     };
 }
 
