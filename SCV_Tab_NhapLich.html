@@ -31,12 +31,10 @@
          <td style="text-align: center; vertical-align: middle;"><textarea class="cell-input text-center" rows="1" oninput="autoResize(this)"></textarea></td>
          
          <td style="vertical-align: middle; padding: 2px;">
-            <div style="display: flex; flex-direction:column; align-items: center; justify-content: center; gap: 3px; width: 100%;">
-                <div class="link-display-area" style="display:flex; flex-wrap:wrap; gap:3px; justify-content:center;"></div>
-                <div style="display: flex; gap: 3px; margin-top:2px;">
-                    <button type="button" onclick="openUploadLich(this)" class="btn-icon btn-upload-icon" title="Đính kèm file" style="opacity:1; pointer-events:auto;">📎 Đính kèm</button>
-                    <button type="button" onclick="extractAILichInfo(this)" class="btn-icon btn-ai-icon" title="Sử dụng AI đọc nội dung và điền lịch">✨ AI</button>
-                </div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 3px; width: 100%;">
+                <div class="link-display-area" style="width: 100%; display:flex; flex-wrap:wrap; gap:3px; justify-content:center;"></div>
+                <button type="button" onclick="openUploadLich(this)" class="btn-icon btn-upload-icon" title="Đính kèm file" style="opacity:1; pointer-events:auto;">📎 Đính kèm</button>
+                <button type="button" onclick="extractAILichInfo(this)" class="btn-icon btn-ai-icon" title="Sử dụng AI đọc nội dung và điền lịch">✨ AI</button>
                 <input type="hidden" class="val-link url-holder">
                 <input type="hidden" class="val-id">
             </div>
@@ -75,9 +73,8 @@
   const ID_FOLDER_LICH = '1hXXJWftw5Z9bFvS686ezV41nHIb_4-n8';
   
   function openUploadLich(btn) {
-       const tr = btn.closest('tr');
-       // Đã loại bỏ ràng buộc nhập nội dung thủ công để nhường nhiệm vụ cho AI
-       const container = btn.closest('td').querySelector('div');
+       // Cập nhật lại đường dẫn để modal tìm đúng biến ẩn
+       const container = btn.parentElement;
        const linkCu = container.querySelector('.val-link').value || "";
        if(typeof SCV_OpenUploadModal === 'function') { 
            SCV_OpenUploadModal(btn, linkCu, ID_FOLDER_LICH);
@@ -89,7 +86,7 @@
   // ==========================================================
   function extractAILichInfo(btn) {
       const tr = btn.closest('tr');
-      const container = btn.closest('td').querySelector('div');
+      const container = btn.parentElement;
       const linkStr = container.querySelector('.val-link').value;
       
       if (!linkStr || linkStr.trim() === "") {
@@ -115,7 +112,6 @@ YÊU CẦU BẮT BUỘC:
   "thanhphan": "Thành phần được mời hoặc tham gia."
 }`;
 
-      // Sử dụng hàm gọi mới chuyên biệt để không ảnh hưởng luồng hỏi đáp công văn
       google.script.run.withSuccessHandler(function(res) {
           btn.innerHTML = originalHtml;
           btn.disabled = false;
