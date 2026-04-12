@@ -2,7 +2,7 @@
  * INTERNAL API BRIDGE - TRƯỜNG TH&THCS HỢP THÀNH
  * Mục đích: Cầu nối giao tiếp (Fetch API) giữa giao diện Web App và Google Apps Script.
  * Hệ thống quản trị công văn và lịch công tác nội bộ.
- * Phiên bản: An toàn hóa định danh V3 & Tích hợp AI
+ * Phiên bản: An toàn hóa định danh V3 & Tích hợp AI Đa luồng
  */
 
 // THẦY HÃY THAY ĐƯỜNG LINK DƯỚI ĐÂY BẰNG LINK WEB APP (đuôi /exec) CỦA THẦY:
@@ -54,7 +54,8 @@ function createRunner(onSuccess, onFailure) {
         SCV_uploadFolderEvidence: function(a,b,c,d,e) { this._call('SCV_uploadFolderEvidence', [a,b,c,d,e]); },
         // KẾT NỐI CHUYÊN TRÁCH GIAO TIẾP VỚI TRỢ LÝ AI
         SCV_chatWithDocument: function(a,b) { this._call('SCV_chatWithDocument', [a,b]); },
-        SCV_extractLichFromDocument: function(a,b) { this._call('SCV_extractLichFromDocument', [a,b]); }
+        SCV_extractLichFromDocument: function(a,b) { this._call('SCV_extractLichFromDocument', [a,b]); },
+        SCV_extractCongVanFromDocument: function(a,b) { this._call('SCV_extractCongVanFromDocument', [a,b]); }
     };
 }
 
