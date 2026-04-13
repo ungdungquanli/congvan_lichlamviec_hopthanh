@@ -185,7 +185,6 @@
         btn.innerHTML = "⏳ Đang xử lý...";
         btn.disabled = true;
 
-        // ÉP KHUÔN LỆNH MỚI: Chỉ lấy 1 văn bản chính
         const query = `Đọc nội dung các tài liệu được đính kèm.
 YÊU CẦU BẮT BUỘC: 
 1. NẾU CÓ NHIỀU FILE, hãy tự động phân tích và XÁC ĐỊNH DUY NHẤT 01 VĂN BẢN CHÍNH (ví dụ: Quyết định, Công văn chỉ đạo, Kế hoạch...). Các file khác (bảng biểu, phụ lục) coi như tài liệu kèm theo, KHÔNG trích xuất.
@@ -207,7 +206,6 @@ YÊU CẦU BẮT BUỘC:
                 try {
                     let aiData = JSON.parse(res.message);
                     
-                    // Nếu AI vẫn cố tình trả về mảng, chỉ lấy đối tượng đầu tiên
                     if (Array.isArray(aiData) && aiData.length > 0) {
                         aiData = aiData[0];
                     }
@@ -306,7 +304,6 @@ YÊU CẦU BẮT BUỘC:
     }
 
     function formatDate(elm) { 
-      // Do không còn nối chuỗi bằng ; nên trả lại hàm lọc số mặc định
       let v = elm.value.replace(/\D/g,''); 
       if (v.length > 8) v = v.substring(0,8);
       let o = ""; 
