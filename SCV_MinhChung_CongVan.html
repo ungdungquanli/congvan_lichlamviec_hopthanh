@@ -81,7 +81,6 @@
     let LINK_CAN_XOA_CV = ""; 
     let CURRENT_ROOT_ID = ""; 
 
-    // Hàm gọi mở giao diện, có kiểm tra phân quyền hợp lệ
     function SCV_OpenUploadModal(btnElement, currentLink, rootId) {
         if (typeof GLOBAL_PERM !== 'undefined' && !GLOBAL_PERM) { toast("⚠️ Không có quyền thao tác!"); return; }
         
@@ -95,7 +94,6 @@
         document.getElementById('fileInCV').value = "";
         document.getElementById('fileLabelCV').innerText = "Nhấn vào đây để chọn file minh chứng";
         
-        // Bỏ tính năng lưu/nhớ link cũ ở ô dán link
         const txtLink = document.getElementById('txtDirectLinkCV');
         txtLink.value = "";
         
@@ -104,7 +102,6 @@
         document.getElementById('newFolderArea').style.display = 'none';
         FILES_CV = [];
 
-        // Đưa về trạng thái mặc định (Tải file)
         document.querySelector('input[name="upModeCV"][value="file"]').checked = true;
         toggleUpModeCV();
 
@@ -160,7 +157,6 @@
        GLOBAL_BTN_TRIGGER = null;
     }
 
-    // Chuyển đổi giao diện giữa Upload và Gán Link
     function toggleUpModeCV() {
        const mode = document.querySelector('input[name="upModeCV"]:checked').value;
        const inp = document.getElementById('fileInCV');
@@ -176,7 +172,7 @@
            
            document.getElementById('txtDirectLinkCV').value = "";
            
-           updateWarnDisplayCV(); // Tự động hiển thị hoặc ẩn cảnh báo dọn dẹp theo logic chuẩn
+           updateWarnDisplayCV(); 
            checkDirectLinkCV(); 
        } else {
            dropzone.style.display = 'block';
@@ -232,14 +228,13 @@
     }
 
     // =================================================================================
-    // Nâng cấp Tiến trình xử lý: Dọn dẹp File Drive thông minh, Chống treo (Hangs) UI
+    // Nâng cấp: Xóa ngầm (Fire and Forget) qua ketnoi.js (Đã Fix API Bridge)
     // =================================================================================
     function doUploadCV() {
        const mode = document.querySelector('input[name="upModeCV"]:checked').value;
        const wMode = document.querySelector('input[name="writeMode"]:checked').value;
        const btn = document.getElementById('uploadBtnCV'), st = document.getElementById('upStatusCV');
        
-       // NHÁNH 1: XỬ LÝ GÁN LINK TRỰC TIẾP
        if (mode === 'link') {
            const linkVal = document.getElementById('txtDirectLinkCV').value.trim();
            if (!linkVal) return;
@@ -250,31 +245,29 @@
 
            let finalLinkStr = linkVal;
 
-           // NẾU CHÈN THÊM LINK VÀO SAU LINK CŨ
            if (wMode === 'append' && LINK_CAN_XOA_CV && LINK_CAN_XOA_CV.trim() !== "") {
                st.innerText = "⏳ Đang gắn kết thêm đường dẫn...";
                finalLinkStr = LINK_CAN_XOA_CV + "," + linkVal;
+               
                setTimeout(() => {
                    handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã chèn thêm link thành công!" }, st, btn);
                }, 300);
            } 
-           // NẾU THAY THẾ (DỌN DẸP DRIVE FILE NẾU CÓ BẰNG CALLBACK)
+           // NẾU THAY THẾ (DỌN DẸP DRIVE NGẦM - KHÔNG CHỜ SERVER PHẢN HỒI LÂU)
            else if (wMode === 'replace' && LINK_CAN_XOA_CV && LINK_CAN_XOA_CV.trim() !== "") {
-               st.innerText = "⏳ Đang đồng bộ: Kiểm tra và dọn dẹp dữ liệu cũ...";
+               st.innerText = "⏳ Đang ghi đè liên kết...";
                
-               // Lệnh xóa này cực kỳ an toàn: Hàm SCV_deleteFileByUrl (trên Server) 
-               // được thiết kế chỉ tìm kiếm ID Drive. Nếu link cũ là link Web ngoại vi, nó tự động bỏ qua.
-               google.script.run
-                   .withSuccessHandler(function() {
-                       handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã thay thế và gán link mới thành công!" }, st, btn);
-                   })
-                   .withFailureHandler(function(err) {
-                       // Dù lệnh xóa gặp lỗi (VD: Cố gắng xóa file Drive không thuộc quyền), vẫn tiếp tục gán link cho UI trơn tru
-                       handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã gán link mới (Bỏ qua dọn dẹp do hạn chế phân quyền)" }, st, btn);
-                   })
-                   .SCV_deleteFileByUrl(LINK_CAN_XOA_CV);
+               // Phát lệnh dọn dẹp xuống Server (Đã mở khóa kết nối trong ketnoi.js)
+               // Gọi hàm rỗng để không bắt UI chờ, tạo cảm giác mượt mà tuyệt đối (Fire & Forget)
+               if(typeof google.script.run.SCV_deleteFileByUrl === 'function') {
+                   google.script.run.withSuccessHandler(function() {}).withFailureHandler(function() {}).SCV_deleteFileByUrl(LINK_CAN_XOA_CV);
+               }
+               
+               // Cập nhật giao diện lập tức
+               setTimeout(() => {
+                   handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã thay thế và gán link mới thành công!" }, st, btn);
+               }, 300);
            } 
-           // NẾU GÁN MỚI HOÀN TOÀN
            else {
                st.innerText = "⏳ Đang cập nhật và ghi đè đường dẫn...";
                setTimeout(() => {
@@ -284,7 +277,6 @@
            return;
        }
 
-       // NHÁNH 2: XỬ LÝ UPLOAD FILE/THƯ MỤC LÊN DRIVE NHƯ CŨ
        if (!FILES_CV || FILES_CV.length === 0) return;
        const fId = document.getElementById('folderSelectCV').value || CURRENT_ROOT_ID;
        
@@ -332,7 +324,6 @@
        }
     }
 
-    // Xử lý phản hồi và trả liên kết về Form gốc
     function handleUpResultCV(res, st, btn) {
        if (res.success) { 
            st.style.color = "green";
