@@ -45,15 +45,17 @@ function createRunner(onSuccess, onFailure) {
         SCV_getInitialData: function() { this._call('SCV_getInitialData', []); },
         SCV_saveDataLich: function(a) { this._call('SCV_saveDataLich', [a]); },
         SCV_getDataLich: function(a) { this._call('SCV_getDataLich', [a]); },
-        SCV_deleteLich: function(a,b) { this._call('SCV_deleteLich', [a,b]); }, // Đã bổ sung hàm xóa Lịch
+        SCV_deleteLich: function(a,b) { this._call('SCV_deleteLich', [a,b]); }, 
         SCV_getDmCongVan: function() { this._call('SCV_getDmCongVan', []); },
         SCV_saveCongVan: function(a,b) { this._call('SCV_saveCongVan', [a,b]); },
         SCV_getDataCongVan: function(a) { this._call('SCV_getDataCongVan', [a]); },
-        SCV_deleteCongVan: function(a,b) { this._call('SCV_deleteCongVan', [a,b]); }, // Đã bổ sung hàm xóa Công văn
+        SCV_deleteCongVan: function(a,b) { this._call('SCV_deleteCongVan', [a,b]); }, 
         SCV_getSubFolders: function(a) { this._call('SCV_getSubFolders', [a]); },
         SCV_createNewFolder: function(a,b) { this._call('SCV_createNewFolder', [a,b]); },
         SCV_uploadMultipleFilesToDrive: function(a,b,c,d,e) { this._call('SCV_uploadMultipleFilesToDrive', [a,b,c,d,e]); },
         SCV_uploadFolderEvidence: function(a,b,c,d,e) { this._call('SCV_uploadFolderEvidence', [a,b,c,d,e]); },
+        // Lệnh dọn dẹp file Drive rác
+        SCV_deleteFileByUrl: function(a) { this._call('SCV_deleteFileByUrl', [a]); },
         // KẾT NỐI CHUYÊN TRÁCH GIAO TIẾP VỚI TRỢ LÝ AI
         SCV_chatWithDocument: function(a,b) { this._call('SCV_chatWithDocument', [a,b]); },
         SCV_extractLichFromDocument: function(a,b) { this._call('SCV_extractLichFromDocument', [a,b]); },
