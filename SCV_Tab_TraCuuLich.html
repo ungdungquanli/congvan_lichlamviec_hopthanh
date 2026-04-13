@@ -29,7 +29,7 @@
 <div class="table-scroll">
   <table id="tblView" style="table-layout: fixed; width: 100%; min-width: 1000px;">
     <colgroup> 
-        <col id="colSuaLich" style="width: 50px;"> 
+        <col id="colSuaLich" style="width: 50px; display: none;"> 
         <col style="width: 50px;"> 
         <col style="width: 110px;"> 
         <col style="width: 70px;"> 
@@ -41,7 +41,7 @@
     </colgroup>
     <thead>
       <tr>
-        <th id="thSuaLich">Sửa</th> 
+        <th id="thSuaLich" style="display: none;">Sửa</th> 
         <th>STT</th> <th>Thời gian<br>(dd/mm/yyyy)</th> <th>Giờ</th> <th>Nội dung công việc</th> <th>Chủ trì</th> <th>Địa điểm</th> <th>Thành phần</th> <th>File đính kèm</th>
       </tr>
     </thead>
@@ -58,15 +58,22 @@
   function initTabLich() {
       setDefaultDates();
       if (typeof google === 'undefined' || !google.script) return;
+      
       google.script.run.withSuccessHandler(res => {
           IS_AUTH_LICH = res.canInput; 
-          const userName = res.sysId; // Đồng bộ định danh với Server
+          const userName = res.sysId; 
           const st = document.getElementById('status_search_lich');
           if(st) st.innerHTML = "👤 " + userName;
  
+          // Cập nhật hiển thị cột ngay khi xác thực xong
           const disp = IS_AUTH_LICH ? '' : 'none';
-          document.getElementById('colSuaLich').style.display = disp;
-          document.getElementById('thSuaLich').style.display = disp;
+          if (document.getElementById('colSuaLich')) document.getElementById('colSuaLich').style.display = disp;
+          if (document.getElementById('thSuaLich')) document.getElementById('thSuaLich').style.display = disp;
+          
+          // Bẫy lỗi 3: Nếu dữ liệu tải xong nhanh hơn quyền xác thực, vẽ lại bảng để khớp cột
+          if (fullData && fullData.length > 0) {
+              filterLichLocal();
+          }
       }).SCV_getInitialData();
   }
 
@@ -92,8 +99,6 @@
       const dFrom = document.getElementById('dFrom').value;
       const dTo = document.getElementById('dTo').value;
       const fContent = document.getElementById('f_ContentLich').value.trim();
-      
-      // BỔ SUNG: Lấy thêm dữ liệu từ ô Tổng hợp theo tên để tạo chuỗi điều kiện
       const fThanhPhan = document.getElementById('f_ThanhPhan').value.trim();
       const conditionString = dFrom + dTo + fContent + fThanhPhan;
       
@@ -122,7 +127,6 @@
             });
             
             fullData = cleanData;
-            // Việc cập nhật tổng số lượng đã được chuyển sang hàm filterLichLocal() để đảm bảo đồng bộ
             filterLichLocal(); 
         })
         .withFailureHandler(err => {
@@ -150,8 +154,6 @@
       
       const dFrom = strToDate(fStr); 
       const dTo = strToDate(tStr);
-
-      // Bóc tách từ khóa cho ô tìm kiếm chung (tìm theo từ đại diện)
       const contentWords = fTxt ? fTxt.split(/\s+/) : [];
 
       const res = fullData.filter(r => {
@@ -159,19 +161,16 @@
           const dRow = strToDate(r[0]); 
           if(!dRow) return false;
           
-          // Lọc theo mốc thời gian
           if(dFrom && dRow.getTime() < dFrom.getTime()) return false;
           if(dTo && dRow.getTime() > dTo.getTime()) return false;
           
-          // Lọc theo TỪ ĐẠI DIỆN cho ô Tìm kiếm chung
-          // (Dòng dữ liệu phải chứa ĐỒNG THỜI tất cả các từ khóa được nhập)
           if(contentWords.length > 0) {
               const content = (r[2] + " " + r[3] + " " + r[4] + " " + r[5]).toLowerCase();
               for (let i = 0; i < contentWords.length; i++) {
                   if(!content.includes(contentWords[i])) return false;
               }
           }
-       // Lọc theo chuỗi nguyên bản cho ô Tổng hợp theo Thành phần
+          
           if(fName) {
               const thanhPhan = String(r[5] || "").toLowerCase();
               if(!thanhPhan.includes(fName)) return false;
@@ -180,11 +179,9 @@
           return true;
       });
       
-      // Cập nhật nhãn thống kê số buổi sau khi lọc
       const statEl = document.getElementById('stat_SoBuoi');
       if(statEl) statEl.innerHTML = `Thống kê: ${res.length} buổi`;
 
-      // SỬA LỖI: Cập nhật nhãn trạng thái tổng tìm thấy đồng bộ với dữ liệu thực tế (res.length)
       const st = document.getElementById('status_search_lich');
       if(st) st.innerHTML = `✅ Tìm thấy: ${res.length} lịch công tác`;
 
@@ -192,6 +189,11 @@
   }
 
   function renderTable(data) {
+    // Bẫy lỗi 4: Ép buộc đồng bộ tiêu đề và khung cột TRƯỚC khi đổ dữ liệu dòng vào
+    const disp = IS_AUTH_LICH ? '' : 'none';
+    if (document.getElementById('colSuaLich')) document.getElementById('colSuaLich').style.display = disp;
+    if (document.getElementById('thSuaLich')) document.getElementById('thSuaLich').style.display = disp;
+
     const tb = document.getElementById('bodyView'); 
     tb.innerHTML = "";
     const colSpanNum = 9;
