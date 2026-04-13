@@ -18,7 +18,7 @@
     <div class="up-header"><h2 style="margin:0; color:#b91c1c;">📁 VĂN BẢN KÈM THEO</h2></div>
     
     <div class="up-box">
-       <label><b>1. Thư mục lưu trữ:</b></label>
+       <label><b>1. Thư mục lưu trữ (Chỉ dùng khi Upload):</b></label>
        <div style="display:flex; gap:5px; margin-top:5px;">
            <select id="folderSelectCV" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><option>⏳ Đang kết nối...</option></select>
            <button class="btn-create-folder" onclick="toggleNewFolderUI()" title="Tạo thư mục con mới">➕</button>
@@ -35,10 +35,11 @@
     </div>
 
     <div class="up-box">
-      <label style="display:block; margin-bottom:5px;"><b>2. Chọn chế độ tải lên:</b></label>
-      <div style="display:flex; gap:20px; justify-content:center; margin-bottom:10px; font-weight:bold;">
-        <label><input type="radio" name="upModeCV" value="file" checked onchange="toggleUpModeCV()"> 📄 Chọn nhiều File lẻ</label>
+      <label style="display:block; margin-bottom:5px;"><b>2. Chọn phương thức đính kèm:</b></label>
+      <div style="display:flex; gap:15px; justify-content:center; margin-bottom:10px; font-weight:bold; flex-wrap: wrap;">
+        <label><input type="radio" name="upModeCV" value="file" checked onchange="toggleUpModeCV()"> 📄 Tải File lẻ</label>
         <label><input type="radio" name="upModeCV" value="folder" onchange="toggleUpModeCV()"> 📂 Cả thư mục</label>
+        <label style="color: #047857;"><input type="radio" name="upModeCV" value="link" onchange="toggleUpModeCV()"> 🔗 Gán link Drive</label>
       </div>
       
       <div style="display:flex; gap:20px; justify-content:center; padding:8px; background:#e0f2fe; border-radius:6px; margin-bottom:10px; font-size: 14px;">
@@ -50,10 +51,16 @@
         </label>
       </div>
       
-      <div class="up-dropzone" onclick="document.getElementById('fileInCV').click()">
+      <div class="up-dropzone" id="dropzoneAreaCV" onclick="document.getElementById('fileInCV').click()">
         <span id="fileLabelCV">Nhấn vào đây để chọn file</span>
         <input type="file" id="fileInCV" style="display:none" onchange="fileSelCV(this)" multiple>
       </div>
+
+      <div id="linkInputAreaCV" style="display:none; text-align: left;">
+          <input type="text" id="txtDirectLinkCV" placeholder="Dán đường link Google Drive của File/Thư mục vào đây..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-family: Arial, sans-serif;" oninput="checkDirectLinkCV()">
+          <div style="font-size:12px; color:#666; margin-top:5px; font-style: italic;">* Lưu ý: File trong link cần được cấp quyền chia sẻ (Bất kỳ ai có liên kết) để AI có thể đọc được nội dung.</div>
+      </div>
+
     </div>
 
     <div id="warnDeleteCV">⚠️ Tài liệu cũ sẽ bị xóa và thay thế sau khi tải lên.</div>
@@ -87,10 +94,18 @@
         document.getElementById('upStatusCV').innerText = "";
         document.getElementById('fileInCV').value = "";
         document.getElementById('fileLabelCV').innerText = "Nhấn vào đây để chọn file minh chứng";
+        
+        // Reset Link UI
+        document.getElementById('txtDirectLinkCV').value = "";
+        
         document.getElementById('uploadBtnCV').style.opacity = 0.5;
         document.getElementById('uploadBtnCV').style.pointerEvents = "none";
         document.getElementById('newFolderArea').style.display = 'none';
         FILES_CV = [];
+
+        // Đưa về trạng thái mặc định (Tải file)
+        document.querySelector('input[name="upModeCV"][value="file"]').checked = true;
+        toggleUpModeCV();
 
         updateWarnDisplayCV();
         document.getElementById('upload_modal_cv').style.display = 'flex';
@@ -144,22 +159,58 @@
        GLOBAL_BTN_TRIGGER = null;
     }
 
+    // Nâng cấp hàm chuyển đổi giao diện giữa Upload và Gán Link
     function toggleUpModeCV() {
        const mode = document.querySelector('input[name="upModeCV"]:checked').value;
        const inp = document.getElementById('fileInCV');
-       inp.value = ""; 
-       document.getElementById('fileLabelCV').innerText = "Nhấn vào đây để chọn file minh chứng";
-       if (mode === 'folder') { 
-           inp.setAttribute('webkitdirectory', ''); 
-           inp.setAttribute('directory', '');
-           inp.setAttribute('multiple', 'multiple');
-           document.getElementById('warnDeleteCV').style.display = 'none';
-       } else { 
-           inp.removeAttribute('webkitdirectory');
-           inp.removeAttribute('directory'); 
-           inp.setAttribute('multiple', 'multiple');
+       const dropzone = document.getElementById('dropzoneAreaCV');
+       const linkArea = document.getElementById('linkInputAreaCV');
+       const btn = document.getElementById('uploadBtnCV');
+
+       if (mode === 'link') {
+           dropzone.style.display = 'none';
+           linkArea.style.display = 'block';
+           btn.innerText = "LƯU LINK NÀY NGAY";
+           btn.style.background = "#047857"; // Đổi màu nút cho đồng bộ tính năng
+           document.getElementById('warnDeleteCV').style.display = 'none'; // Xóa file khi gán link được thực hiện ngầm định nếu replace
            updateWarnDisplayCV();
+           checkDirectLinkCV(); // Kiểm tra text box
+       } else {
+           dropzone.style.display = 'block';
+           linkArea.style.display = 'none';
+           btn.innerText = "TẢI LÊN NGAY";
+           btn.style.background = "#0891b2";
+           
+           inp.value = ""; 
+           document.getElementById('fileLabelCV').innerText = "Nhấn vào đây để chọn file minh chứng";
+           btn.style.opacity = 0.5;
+           btn.style.pointerEvents = "none";
+
+           if (mode === 'folder') { 
+               inp.setAttribute('webkitdirectory', ''); 
+               inp.setAttribute('directory', '');
+               inp.setAttribute('multiple', 'multiple');
+               document.getElementById('warnDeleteCV').style.display = 'none';
+           } else { 
+               inp.removeAttribute('webkitdirectory');
+               inp.removeAttribute('directory'); 
+               inp.setAttribute('multiple', 'multiple');
+               updateWarnDisplayCV();
+           }
        }
+    }
+
+    // Bổ sung hàm kiểm tra Input cho phần Gán link
+    function checkDirectLinkCV() {
+        const val = document.getElementById('txtDirectLinkCV').value.trim();
+        const btn = document.getElementById('uploadBtnCV');
+        if (val !== "") {
+            btn.style.opacity = 1;
+            btn.style.pointerEvents = "auto";
+        } else {
+            btn.style.opacity = 0.5;
+            btn.style.pointerEvents = "none";
+        }
     }
 
     // Xử lý sự kiện khi người dùng chủ động chọn tệp
@@ -179,13 +230,44 @@
        }
     }
 
-    // Tiến trình đọc và xử lý tải lên (File Parsing & Upload Process)
+    // Nâng cấp Tiến trình xử lý: Hỗ trợ Gán Link không cần qua GAS
     function doUploadCV() {
-       if (!FILES_CV || FILES_CV.length === 0) return;
-       const btn = document.getElementById('uploadBtnCV'), st = document.getElementById('upStatusCV');
-       const fId = document.getElementById('folderSelectCV').value || CURRENT_ROOT_ID;
        const mode = document.querySelector('input[name="upModeCV"]:checked').value;
        const wMode = document.querySelector('input[name="writeMode"]:checked').value;
+       const btn = document.getElementById('uploadBtnCV'), st = document.getElementById('upStatusCV');
+       
+       // NHÁNH 1: XỬ LÝ GÁN LINK TRỰC TIẾP
+       if (mode === 'link') {
+           const linkVal = document.getElementById('txtDirectLinkCV').value.trim();
+           if (!linkVal) return;
+           
+           btn.style.opacity = 0.5;
+           btn.style.pointerEvents = "none";
+           st.style.color = "blue";
+           st.innerText = "⏳ Đang gắn kết đường dẫn...";
+
+           let finalLinkStr = linkVal;
+
+           // Xử lý logic Thay thế / Chèn thêm trực tiếp trên Client
+           if (wMode === 'append' && LINK_CAN_XOA_CV && LINK_CAN_XOA_CV.trim() !== "") {
+               finalLinkStr = LINK_CAN_XOA_CV + "," + linkVal;
+           } else if (wMode === 'replace' && LINK_CAN_XOA_CV && LINK_CAN_XOA_CV.trim() !== "") {
+               // Dù là gán link nhưng nếu chọn Replace, ta vẫn gọi GAS xóa file cũ trong nền để tránh rác Drive
+               google.script.run.SCV_deleteFileByUrl(LINK_CAN_XOA_CV);
+           }
+
+           // Trả kết quả giả lập chuẩn định dạng để gọi handleUpResultCV
+           setTimeout(() => {
+               const res = { success: true, fileUrl: finalLinkStr, message: "Đã gán link tài liệu thành công!" };
+               handleUpResultCV(res, st, btn);
+           }, 500); // Delay nhẹ tạo cảm giác mượt mà
+           
+           return;
+       }
+
+       // NHÁNH 2: XỬ LÝ UPLOAD FILE/THƯ MỤC LÊN DRIVE NHƯ CŨ
+       if (!FILES_CV || FILES_CV.length === 0) return;
+       const fId = document.getElementById('folderSelectCV').value || CURRENT_ROOT_ID;
        
        btn.style.opacity = 0.5;
        btn.style.pointerEvents = "none"; 
@@ -232,7 +314,7 @@
        }
     }
 
-    // Xử lý phản hồi từ Server
+    // Xử lý phản hồi và trả liên kết về Form gốc
     function handleUpResultCV(res, st, btn) {
        if (res.success) { 
            st.style.color = "green";
