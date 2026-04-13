@@ -57,7 +57,7 @@
       </div>
 
       <div id="linkInputAreaCV" style="display:none; text-align: left;">
-          <input type="text" id="txtDirectLinkCV" placeholder="Dán đường link (Google Drive hoặc link web trực tiếp .pdf, .jpg...) vào đây..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-family: Arial, sans-serif;" oninput="checkDirectLinkCV()">
+          <input type="text" id="txtDirectLinkCV" placeholder="Dán đường link (Google Drive hoặc link web trực tiếp .pdf, .jpg...) vào đây..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-family: Arial, sans-serif;" oninput="checkDirectLinkCV()" autocomplete="off" spellcheck="false">
           <div style="font-size:12px; color:#666; margin-top:5px; font-style: italic;">* Lưu ý: Hỗ trợ link Google Drive đã mở quyền (Bất kỳ ai có liên kết) hoặc link file web trực tiếp. AI chỉ đọc được nếu file không bị khóa mật khẩu.</div>
       </div>
 
@@ -95,8 +95,9 @@
         document.getElementById('fileInCV').value = "";
         document.getElementById('fileLabelCV').innerText = "Nhấn vào đây để chọn file minh chứng";
         
-        // Reset Link UI
-        document.getElementById('txtDirectLinkCV').value = "";
+        // Bỏ tính năng lưu/nhớ link cũ ở ô dán link
+        const txtLink = document.getElementById('txtDirectLinkCV');
+        txtLink.value = "";
         
         document.getElementById('uploadBtnCV').style.opacity = 0.5;
         document.getElementById('uploadBtnCV').style.pointerEvents = "none";
@@ -159,7 +160,7 @@
        GLOBAL_BTN_TRIGGER = null;
     }
 
-    // Nâng cấp hàm chuyển đổi giao diện giữa Upload và Gán Link
+    // Chuyển đổi giao diện giữa Upload và Gán Link
     function toggleUpModeCV() {
        const mode = document.querySelector('input[name="upModeCV"]:checked').value;
        const inp = document.getElementById('fileInCV');
@@ -171,10 +172,13 @@
            dropzone.style.display = 'none';
            linkArea.style.display = 'block';
            btn.innerText = "LƯU LINK NÀY NGAY";
-           btn.style.background = "#047857"; // Đổi màu nút cho đồng bộ tính năng
-           document.getElementById('warnDeleteCV').style.display = 'none'; // Xóa file khi gán link được thực hiện ngầm định nếu replace
+           btn.style.background = "#047857"; 
+           document.getElementById('warnDeleteCV').style.display = 'none'; // Ẩn cảnh báo vì gán link không còn xóa file
+           
+           document.getElementById('txtDirectLinkCV').value = "";
+           
            updateWarnDisplayCV();
-           checkDirectLinkCV(); // Kiểm tra text box
+           checkDirectLinkCV(); 
        } else {
            dropzone.style.display = 'block';
            linkArea.style.display = 'none';
@@ -200,7 +204,6 @@
        }
     }
 
-    // Bổ sung hàm kiểm tra Input cho phần Gán link
     function checkDirectLinkCV() {
         const val = document.getElementById('txtDirectLinkCV').value.trim();
         const btn = document.getElementById('uploadBtnCV');
@@ -213,7 +216,6 @@
         }
     }
 
-    // Xử lý sự kiện khi người dùng chủ động chọn tệp
     function fileSelCV(input) {
        if (input.files.length > 0) {
          FILES_CV = input.files;
@@ -230,13 +232,13 @@
        }
     }
 
-    // Nâng cấp Tiến trình xử lý: Hỗ trợ Gán Link không cần qua GAS
+    // Nâng cấp Tiến trình xử lý: Bỏ chế độ xóa file Drive đối với tính năng Gán Link
     function doUploadCV() {
        const mode = document.querySelector('input[name="upModeCV"]:checked').value;
        const wMode = document.querySelector('input[name="writeMode"]:checked').value;
        const btn = document.getElementById('uploadBtnCV'), st = document.getElementById('upStatusCV');
        
-       // NHÁNH 1: XỬ LÝ GÁN LINK TRỰC TIẾP
+       // NHÁNH 1: XỬ LÝ GÁN LINK TRỰC TIẾP (KHÔNG GỌI API XÓA)
        if (mode === 'link') {
            const linkVal = document.getElementById('txtDirectLinkCV').value.trim();
            if (!linkVal) return;
@@ -244,23 +246,24 @@
            btn.style.opacity = 0.5;
            btn.style.pointerEvents = "none";
            st.style.color = "blue";
-           st.innerText = "⏳ Đang gắn kết đường dẫn...";
 
            let finalLinkStr = linkVal;
 
-           // Xử lý logic Thay thế / Chèn thêm trực tiếp trên Client
+           // NẾU CHÈN THÊM LINK VÀO SAU LINK CŨ
            if (wMode === 'append' && LINK_CAN_XOA_CV && LINK_CAN_XOA_CV.trim() !== "") {
+               st.innerText = "⏳ Đang gắn kết thêm đường dẫn...";
                finalLinkStr = LINK_CAN_XOA_CV + "," + linkVal;
-           } else if (wMode === 'replace' && LINK_CAN_XOA_CV && LINK_CAN_XOA_CV.trim() !== "") {
-               // Dù là gán link nhưng nếu chọn Replace, ta vẫn gọi GAS xóa file cũ trong nền để tránh rác Drive
-               google.script.run.SCV_deleteFileByUrl(LINK_CAN_XOA_CV);
+           } 
+           // NẾU THAY THẾ HOẶC GÁN MỚI
+           else {
+               st.innerText = "⏳ Đang cập nhật và ghi đè đường dẫn...";
+               finalLinkStr = linkVal; // Chỉ lấy link mới để ghi đè trên Form, KHÔNG xóa file hệ thống
            }
 
-           // Trả kết quả giả lập chuẩn định dạng để gọi handleUpResultCV
+           // Trả kết quả cập nhật về Form một cách tức thì
            setTimeout(() => {
-               const res = { success: true, fileUrl: finalLinkStr, message: "Đã gán link tài liệu thành công!" };
-               handleUpResultCV(res, st, btn);
-           }, 500); // Delay nhẹ tạo cảm giác mượt mà
+               handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã gán link thành công!" }, st, btn);
+           }, 300);
            
            return;
        }
@@ -282,7 +285,6 @@
          Array.from(FILES_CV).forEach(file => {
            const r = new FileReader();
            r.onload = e => {
-             // Mã hóa Base64 an toàn để truyền tải qua GAS
              filesData.push({ fileName: file.name, mimeType: file.type, data: e.target.result.split(',')[1] });
              count++;
              if (count === FILES_CV.length) {
