@@ -63,12 +63,66 @@
     tbody.appendChild(newRow);
   }
 
-  function delRowLich(btn) { if(document.querySelectorAll('#bodyLich tr').length > 1) btn.closest('tr').remove(); else toast('Không thể xóa dòng cuối cùng!'); }
+  /* ==========================================================
+     HÀM XÓA LỊCH ĐÃ ĐƯỢC NÂNG CẤP ĐỒNG BỘ
+     ========================================================== */
+  function delRowLich(btn) { 
+      const row = btn.closest('tr');
+      const tbody = document.getElementById('bodyLich');
+      
+      const valIdInput = row.cells[7].querySelector('.val-id');
+      const valLinkInput = row.cells[7].querySelector('.val-link');
+      const id = valIdInput ? valIdInput.value : "";
+      const linkFiles = valLinkInput ? valLinkInput.value : "";
+
+      if (id && id.trim() !== "") {
+          if (!confirm("⚠️ LƯU Ý: Thao tác này sẽ XÓA VĨNH VIỄN lịch công tác và TOÀN BỘ file đính kèm trên hệ thống.\n\nĐồng chí có chắc chắn muốn tiến hành xóa?")) {
+              return;
+          }
+          
+          const oldHtml = btn.innerHTML;
+          btn.innerHTML = "⏳";
+          btn.disabled = true;
+
+          google.script.run
+              .withSuccessHandler(res => {
+                  if (res.success) {
+                      toast(res.message);
+                      if (tbody.querySelectorAll('tr').length > 1) {
+                          row.remove();
+                      } else {
+                          row.querySelectorAll('textarea').forEach(e => { e.value = ''; e.style.height = 'auto'; });
+                          const container = row.cells[7].querySelector('div');
+                          container.querySelector('.link-display-area').innerHTML = '';
+                          container.querySelector('.btn-upload-icon').innerHTML = '📎 Đính kèm';
+                          container.querySelector('.btn-upload-icon').style.borderColor = "#ccc";
+                          if(valLinkInput) valLinkInput.value = "";
+                          if(valIdInput) valIdInput.value = "";
+                      }
+                  } else {
+                      toast(res.message);
+                      btn.innerHTML = oldHtml;
+                      btn.disabled = false;
+                  }
+              })
+              .withFailureHandler(err => {
+                  toast("❌ Lỗi kết nối hệ thống: " + err);
+                  btn.innerHTML = oldHtml;
+                  btn.disabled = false;
+              })
+              .SCV_deleteLich(id, linkFiles);
+      } else {
+          if (tbody.querySelectorAll('tr').length > 1) {
+              row.remove();
+          } else {
+              toast('Không thể xóa dòng cuối cùng trên giao diện!');
+          }
+      }
+  }
  
   function autoResize(elm) { elm.style.height = 'auto'; elm.style.height = elm.scrollHeight + 'px'; }
   
   function formatDate(elm) { 
-    // Trả lại hàm định dạng ngày chuẩn
     let v = elm.value.replace(/\D/g,''); 
     if (v.length > 8) v = v.substring(0,8); 
     let o = ""; 
@@ -105,7 +159,6 @@
       btn.innerHTML = "⏳ Đang xử lý...";
       btn.disabled = true;
 
-      // ÉP KHUÔN LỆNH MỚI: Chỉ lấy 1 văn bản chính
       const query = `Đọc nội dung các tài liệu được đính kèm.
 YÊU CẦU BẮT BUỘC: 
 1. NẾU CÓ NHIỀU FILE, hãy phân tích và XÁC ĐỊNH DUY NHẤT 01 VĂN BẢN CHÍNH chứa lịch công tác/sự kiện. Các file khác coi như tài liệu tham khảo, KHÔNG trích xuất.
@@ -129,7 +182,6 @@ YÊU CẦU BẮT BUỘC:
               try {
                   let aiData = JSON.parse(res.message);
 
-                  // Nếu AI trả về mảng, lấy đối tượng đầu tiên (văn bản chính)
                   if (Array.isArray(aiData) && aiData.length > 0) {
                       aiData = aiData[0];
                   }
