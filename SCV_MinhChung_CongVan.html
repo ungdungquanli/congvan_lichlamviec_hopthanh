@@ -18,7 +18,7 @@
     <div class="up-header"><h2 style="margin:0; color:#b91c1c;">📁 VĂN BẢN KÈM THEO</h2></div>
     
     <div class="up-box">
-       <label><b>1. Thư mục lưu trữ (Chỉ dùng khi Upload):</b></label>
+       <label><b>1. Thư mục lưu trữ (Chỉ dùng khi Tải File):</b></label>
        <div style="display:flex; gap:5px; margin-top:5px;">
            <select id="folderSelectCV" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px;"><option>⏳ Đang kết nối...</option></select>
            <button class="btn-create-folder" onclick="toggleNewFolderUI()" title="Tạo thư mục con mới">➕</button>
@@ -39,7 +39,7 @@
       <div style="display:flex; gap:15px; justify-content:center; margin-bottom:10px; font-weight:bold; flex-wrap: wrap;">
         <label><input type="radio" name="upModeCV" value="file" checked onchange="toggleUpModeCV()"> 📄 Tải File lẻ</label>
         <label><input type="radio" name="upModeCV" value="folder" onchange="toggleUpModeCV()"> 📂 Cả thư mục</label>
-        <label style="color: #047857;"><input type="radio" name="upModeCV" value="link" onchange="toggleUpModeCV()"> 🔗 Gán link Drive</label>
+        <label style="color: #047857;"><input type="radio" name="upModeCV" value="link" onchange="toggleUpModeCV()"> 🔗 Gán link Web/Drive</label>
       </div>
       
       <div style="display:flex; gap:20px; justify-content:center; padding:8px; background:#e0f2fe; border-radius:6px; margin-bottom:10px; font-size: 14px;">
@@ -57,8 +57,8 @@
       </div>
 
       <div id="linkInputAreaCV" style="display:none; text-align: left;">
-          <input type="text" id="txtDirectLinkCV" placeholder="Dán đường link Google Drive của File/Thư mục vào đây..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-family: Arial, sans-serif;" oninput="checkDirectLinkCV()">
-          <div style="font-size:12px; color:#666; margin-top:5px; font-style: italic;">* Lưu ý: File trong link cần được cấp quyền chia sẻ (Bất kỳ ai có liên kết) để AI có thể đọc được nội dung.</div>
+          <input type="text" id="txtDirectLinkCV" placeholder="Dán đường link (Google Drive hoặc link web trực tiếp .pdf, .jpg...) vào đây..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-family: Arial, sans-serif;" oninput="checkDirectLinkCV()">
+          <div style="font-size:12px; color:#666; margin-top:5px; font-style: italic;">* Lưu ý: Hỗ trợ link Google Drive đã mở quyền (Bất kỳ ai có liên kết) hoặc link file web trực tiếp. AI chỉ đọc được nếu file không bị khóa mật khẩu.</div>
       </div>
 
     </div>
