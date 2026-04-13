@@ -63,7 +63,7 @@
 
     </div>
 
-    <div id="warnDeleteCV">⚠️ Tài liệu cũ sẽ bị xóa và thay thế sau khi tải lên.</div>
+    <div id="warnDeleteCV">⚠️ Tài liệu/Liên kết cũ sẽ bị thay thế (Hệ thống tự động dọn dẹp file Drive cũ nếu có để giảm tải bộ nhớ).</div>
 
     <div id="upStatusCV" style="text-align:center; font-weight:bold; min-height:20px; color:#333;"></div>
     
@@ -173,11 +173,10 @@
            linkArea.style.display = 'block';
            btn.innerText = "LƯU LINK NÀY NGAY";
            btn.style.background = "#047857"; 
-           document.getElementById('warnDeleteCV').style.display = 'none'; // Ẩn cảnh báo vì gán link không còn xóa file
            
            document.getElementById('txtDirectLinkCV').value = "";
            
-           updateWarnDisplayCV();
+           updateWarnDisplayCV(); // Tự động hiển thị hoặc ẩn cảnh báo dọn dẹp theo logic chuẩn
            checkDirectLinkCV(); 
        } else {
            dropzone.style.display = 'block';
@@ -232,13 +231,15 @@
        }
     }
 
-    // Nâng cấp Tiến trình xử lý: Bỏ chế độ xóa file Drive đối với tính năng Gán Link
+    // =================================================================================
+    // Nâng cấp Tiến trình xử lý: Dọn dẹp File Drive thông minh, Chống treo (Hangs) UI
+    // =================================================================================
     function doUploadCV() {
        const mode = document.querySelector('input[name="upModeCV"]:checked').value;
        const wMode = document.querySelector('input[name="writeMode"]:checked').value;
        const btn = document.getElementById('uploadBtnCV'), st = document.getElementById('upStatusCV');
        
-       // NHÁNH 1: XỬ LÝ GÁN LINK TRỰC TIẾP (KHÔNG GỌI API XÓA)
+       // NHÁNH 1: XỬ LÝ GÁN LINK TRỰC TIẾP
        if (mode === 'link') {
            const linkVal = document.getElementById('txtDirectLinkCV').value.trim();
            if (!linkVal) return;
@@ -253,18 +254,33 @@
            if (wMode === 'append' && LINK_CAN_XOA_CV && LINK_CAN_XOA_CV.trim() !== "") {
                st.innerText = "⏳ Đang gắn kết thêm đường dẫn...";
                finalLinkStr = LINK_CAN_XOA_CV + "," + linkVal;
+               setTimeout(() => {
+                   handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã chèn thêm link thành công!" }, st, btn);
+               }, 300);
            } 
-           // NẾU THAY THẾ HOẶC GÁN MỚI
+           // NẾU THAY THẾ (DỌN DẸP DRIVE FILE NẾU CÓ BẰNG CALLBACK)
+           else if (wMode === 'replace' && LINK_CAN_XOA_CV && LINK_CAN_XOA_CV.trim() !== "") {
+               st.innerText = "⏳ Đang đồng bộ: Kiểm tra và dọn dẹp dữ liệu cũ...";
+               
+               // Lệnh xóa này cực kỳ an toàn: Hàm SCV_deleteFileByUrl (trên Server) 
+               // được thiết kế chỉ tìm kiếm ID Drive. Nếu link cũ là link Web ngoại vi, nó tự động bỏ qua.
+               google.script.run
+                   .withSuccessHandler(function() {
+                       handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã thay thế và gán link mới thành công!" }, st, btn);
+                   })
+                   .withFailureHandler(function(err) {
+                       // Dù lệnh xóa gặp lỗi (VD: Cố gắng xóa file Drive không thuộc quyền), vẫn tiếp tục gán link cho UI trơn tru
+                       handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã gán link mới (Bỏ qua dọn dẹp do hạn chế phân quyền)" }, st, btn);
+                   })
+                   .SCV_deleteFileByUrl(LINK_CAN_XOA_CV);
+           } 
+           // NẾU GÁN MỚI HOÀN TOÀN
            else {
                st.innerText = "⏳ Đang cập nhật và ghi đè đường dẫn...";
-               finalLinkStr = linkVal; // Chỉ lấy link mới để ghi đè trên Form, KHÔNG xóa file hệ thống
+               setTimeout(() => {
+                   handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã gán link thành công!" }, st, btn);
+               }, 300); 
            }
-
-           // Trả kết quả cập nhật về Form một cách tức thì
-           setTimeout(() => {
-               handleUpResultCV({ success: true, fileUrl: finalLinkStr, message: "Đã gán link thành công!" }, st, btn);
-           }, 300);
-           
            return;
        }
 
