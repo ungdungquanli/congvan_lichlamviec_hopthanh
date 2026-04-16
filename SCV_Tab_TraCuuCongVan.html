@@ -167,9 +167,10 @@
             .withSuccessHandler(data => {
                 data.sort((a, b) => parseDateCV(b.ngayBH) - parseDateCV(a.ngayBH));
                 FULL_DATA_CV = data;
+                
+                // Đã xóa lệnh hiển thị status đếm biến data.length ở đây
+                
                 filterCongVanLocal(); 
-                const st = document.getElementById('status_search_cv');
-                st.innerHTML = `✅ Tìm thấy: ${data.length} văn bản`;
             })
             .withFailureHandler(err => {
                 tbody.innerHTML = `<tr><td colspan="${colSpanNum}" class="text-center" style="padding:20px; color:red; font-weight:bold; border: 1px solid #ccc !important;">❌ Lỗi kết nối máy chủ: ${err}</td></tr>`;
@@ -204,7 +205,14 @@
             }
             return true;
         });
+        
         renderTableCV(result);
+
+        // BỔ SUNG: Hiển thị đúng số lượng mảng dữ liệu đã được lọc
+        const st = document.getElementById('status_search_cv');
+        if (st) {
+            st.innerHTML = `✅ Tìm thấy: <strong style="color:#e11d48;">${result.length}</strong> văn bản`;
+        }
     }
 
     function renderTableCV(data) {
