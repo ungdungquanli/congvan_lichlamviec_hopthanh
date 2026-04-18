@@ -49,7 +49,7 @@
                 <td><button onclick="delRowCV(this)" style="color:red;border:none;background:none;cursor:pointer; font-size: 16px;">🗑️</button></td>
                 <td style="text-align: center; vertical-align: middle;"><textarea class="cell-input" placeholder="dd/mm/yyyy" oninput="formatDate(this); autoResize(this)" style="text-align:center; resize:none; overflow:hidden;" rows="1"></textarea></td>
                 <td style="text-align: center; vertical-align: middle;"><textarea class="cell-input" oninput="autoResize(this)" style="text-align:center; resize:none; overflow:hidden;" rows="1"></textarea></td>
-                <td style="text-align: left !important; vertical-align: middle !important; padding: 1px;"><textarea class="cell-input" rows="1" oninput="autoResize(this)" style="text-align: left; vertical-align: middle; min-height: 40px; overflow:hidden; resize: none; line-height: 1.5;"></textarea></td>
+                <td style="text-align: left !important; vertical-align: middle !important; padding: 1px;"><textarea class="cell-input" rows="1" oninput="autoResize(this)" style="text-align: left; vertical-align: middle; min-height: 40px; overflow:hidden; resize: none; line-height: 1.5"></textarea></td>
                 <td style="text-align: center; vertical-align: middle;"><textarea class="cell-input" oninput="autoResize(this)" style="text-align:center; resize:none; overflow:hidden;" rows="1"></textarea></td>
                 <td style="vertical-align: middle; padding: 2px;">
                     <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 3px; width: 100%;">
@@ -185,6 +185,7 @@
         btn.innerHTML = "⏳ Đang xử lý...";
         btn.disabled = true;
 
+        // ĐÃ SỬA LỖI: Bổ sung dấu đóng chuỗi (`) và dấu chấm phẩy (;) tại đây
         const query = `Đọc nội dung các tài liệu được đính kèm.
 CHỈ QUÉT PHẦN ĐẦU (Trang 1) CỦA VĂN BẢN CHÍNH. Bỏ qua toàn bộ nội dung chi tiết và tài liệu phụ lục. Trả về đúng 1 đối tượng JSON.
 
@@ -199,7 +200,7 @@ CẤU TRÚC JSON:
   "ky_hieu": "Số/Ký hiệu (chỉ lấy số và chữ viết tắt)",
   "trich_yeu": "Trích yếu nội dung văn bản",
   "noi_ban_hanh": "Cơ quan ban hành"
-}
+}`;
 
         google.script.run.withSuccessHandler(function(res) {
             btn.innerHTML = originalHtml;
