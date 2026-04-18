@@ -186,17 +186,20 @@
         btn.disabled = true;
 
         const query = `Đọc nội dung các tài liệu được đính kèm.
-YÊU CẦU BẮT BUỘC: 
-1. NẾU CÓ NHIỀU FILE, hãy tự động phân tích và XÁC ĐỊNH DUY NHẤT 01 VĂN BẢN CHÍNH (ví dụ: Quyết định, Công văn chỉ đạo, Kế hoạch...). Các file khác (bảng biểu, phụ lục) coi như tài liệu kèm theo, KHÔNG trích xuất.
-2. Bỏ qua các file không đúng định dạng hoặc không rõ nội dung.
-3. TUYỆT ĐỐI KHÔNG GỘP nội dung của nhiều file. Chỉ lấy thông tin của văn bản chính.
-4. TRẢ VỀ DUY NHẤT 1 ĐỐI TƯỢNG JSON PHẲNG với các khóa sau:
+CHỈ QUÉT PHẦN ĐẦU (Trang 1) CỦA VĂN BẢN CHÍNH. Bỏ qua toàn bộ nội dung chi tiết và tài liệu phụ lục. Trả về đúng 1 đối tượng JSON.
+
+QUY TẮC BẮT BUỘC:
+1. LỌC VĂN BẢN: Nếu có nhiều file, chỉ chọn 01 VĂN BẢN CHÍNH (Quyết định, Công văn, Kế hoạch...). Bỏ qua mọi file không rõ định dạng hoặc phụ lục. Không gộp nội dung.
+2. VỊ TRÍ LẤY DỮ LIỆU: Chỉ tìm kiếm tại khu vực Quốc hiệu, Tiêu ngữ và Kính gửi/Trích yếu. 
+3. ĐẦU RA: DUY NHẤT 1 JSON phẳng, tuyệt đối không kèm văn bản giải thích.
+
+CẤU TRÚC JSON:
 {
-  "ngay_bh": "Ngày tháng ban hành của VĂN BẢN CHÍNH (BẮT BUỘC định dạng dd/MM/yyyy).",
-  "ky_hieu": "Ký hiệu của VĂN BẢN CHÍNH (chỉ lấy số và chữ viết tắt).",
-  "trich_yeu": "Nội dung trích yếu của VĂN BẢN CHÍNH.",
-  "noi_ban_hanh": "Cơ quan ban hành VĂN BẢN CHÍNH."
-}`;
+  "ngay_bh": "Ngày ban hành (định dạng dd/MM/yyyy)",
+  "ky_hieu": "Số/Ký hiệu (chỉ lấy số và chữ viết tắt)",
+  "trich_yeu": "Trích yếu nội dung văn bản",
+  "noi_ban_hanh": "Cơ quan ban hành"
+}
 
         google.script.run.withSuccessHandler(function(res) {
             btn.innerHTML = originalHtml;
